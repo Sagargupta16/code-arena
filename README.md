@@ -1,105 +1,143 @@
 # Code Arena
 
-Real-time competitive coding platform where friends race to solve coding problems.
+Real-time competitive coding platform where 2-5 friends race to solve LeetCode problems with built-in C++ and Python execution.
 
 ## Features
 
-- Create private rooms (2-5 players) with a shareable 6-character code
-- Random LeetCode problems filtered by difficulty and tags
-- Built-in C++ and Python code execution (sandboxed via Piston)
-- Two competition modes: Blind Race and Live Status Board
-- Points-based scoring with partial scoring fallback
-- Server-authoritative timer with real-time sync
+- **GitHub OAuth** -- sign in with GitHub, no passwords
+- **Private rooms** -- 6-character code, 2-5 players
+- **Random LeetCode problems** -- filtered by difficulty and tags, with real function signatures
+- **Built-in code execution** -- C++ and Python in sandboxed containers via Piston
+- **Two modes** -- Blind Race (no peeking) and Live Status Board
+- **LeetCode-style editor** -- Monaco Editor with language toggle, test cases panel, submission results
+- **Server-authoritative timer** -- real-time sync via WebSocket
+- **Scoring** -- speed + attempts + test cases passed
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
 | Frontend | React 19, TypeScript, Vite, Tailwind CSS, Monaco Editor |
-| Backend | FastAPI, Python 3.13, WebSocket |
+| Backend | FastAPI, Python 3.13, WebSocket, Motor (async MongoDB) |
+| Auth | GitHub OAuth, JWT (python-jose) |
 | Database | MongoDB 7 |
-| Code Execution | Piston (self-hosted, MIT) |
-| Problem Source | alfa-leetcode-api (MIT) |
-| Containerization | Docker Compose |
+| Code Execution | Piston (self-hosted, sandboxed) |
+| Problem Source | alfa-leetcode-api + LeetCode GraphQL |
+| Orchestration | Docker Compose |
 
 ## Quick Start
 
+### Prerequisites
+
+- Docker Desktop
+- Python 3.13+
+- Node.js 20+ with pnpm
+
+### Run with Docker Compose (full stack)
+
 ```bash
-# Clone
 git clone https://github.com/Sagargupta16/code-arena.git
 cd code-arena
-
-# Copy env
 cp .env.example .env
-
-# Start all services
+# Fill in GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET (see Auth Setup below)
 docker compose up -d
+```
 
-# Install language runtimes (first time only)
-curl -X POST http://localhost:2000/api/v2/packages \
-  -H "Content-Type: application/json" \
-  -d '{"language": "python", "version": "3.10.0"}'
+### Run locally (dev mode)
 
-curl -X POST http://localhost:2000/api/v2/packages \
-  -H "Content-Type: application/json" \
-  -d '{"language": "c++", "version": "10.2.0"}'
+```bash
+# Start MongoDB and LeetCode API via Docker
+docker compose up mongodb leetcode-api -d
+
+# Fill in .env with GitHub OAuth credentials and set:
+#   MONGO_URI=mongodb://localhost:27017/code_arena
+#   LEETCODE_API_URL=http://localhost:3000
+#   VITE_API_URL=  (leave empty)
+#   VITE_WS_URL=   (leave empty)
+
+# Start both backend and frontend
+pnpm install
+pnpm dev
 ```
 
 - Frontend: http://localhost:5173
 - Backend API docs: http://localhost:8000/docs
 
+### Auth Setup (GitHub OAuth)
+
+1. Go to https://github.com/settings/developers
+2. Click **New OAuth App**
+3. Fill in:
+   - **Application name:** `Code Arena`
+   - **Homepage URL:** `http://localhost:5173`
+   - **Authorization callback URL:** `http://localhost:5173/auth/callback`
+4. Copy **Client ID** and generate a **Client Secret**
+5. Add them to `.env`:
+   ```
+   GITHUB_CLIENT_ID=your-client-id
+   GITHUB_CLIENT_SECRET=your-client-secret
+   ```
+
 ## Development
 
 ```bash
+# Both backend + frontend (from root)
+pnpm dev
+
 # Backend only
-cd backend && pip install -r requirements.txt && uvicorn main:app --reload
+cd backend && pip install -r requirements.txt && uvicorn main:app --reload --port 8000
 
 # Frontend only
 cd frontend && pnpm install && pnpm dev
 
-# Run tests
+# Run backend tests
 cd backend && python -m pytest tests/ -v
+
+# Run a single test
+cd backend && python -m pytest tests/test_scoring.py -v
 ```
 
 ## Project Structure
 
 ```
 code-arena/
-  docker-compose.yml        # All 5 services
-  backend/                   # FastAPI + WebSocket
+  docker-compose.yml           # MongoDB, Piston, LeetCode API, backend, frontend
+  leetcode-api.Dockerfile      # Custom build for alfa-leetcode-api
+  package.json                 # Root scripts (pnpm dev runs both)
+  backend/
+    main.py                    # FastAPI app entry point
     app/
-      routes/                # REST API endpoints
-      ws/                    # WebSocket handlers
-      services/              # Business logic (judge, scoring, room, problem)
-      models/                # Pydantic models
-  frontend/                  # React 19 + Vite
+      config.py                # Pydantic settings from .env
+      db.py                    # MongoDB connection (Motor)
+      deps.py                  # Auth dependency (JWT verification)
+      routes/                  # auth, rooms, problems, users
+      services/                # auth, judge, problem, room, scoring
+      models/                  # Pydantic models (user, room, problem, submission)
+      ws/                      # WebSocket handlers + connection manager
+    tests/                     # 21 tests (auth, judge, problems, rooms, scoring, ws)
+  frontend/
     src/
-      pages/                 # Landing, Auth, Dashboard, Lobby, Arena, Results
-      components/            # Editor, Timer, StatusBar, Scoreboard
-      hooks/                 # useWebSocket, useTimer, useAuth
-      services/              # API and WebSocket clients
+      pages/                   # Landing, Login, AuthCallback, Dashboard, Lobby, Arena, Results
+      components/              # Editor, ProblemPanel, TestResults, Timer, Navbar, etc.
+      hooks/                   # useAuth, useWebSocket, useTimer
+      services/                # REST API client, WebSocket client
+      context/                 # AuthContext (GitHub OAuth + JWT)
+      types/                   # TypeScript interfaces
 ```
 
 ## How It Works
 
-1. **Create a room** - Pick difficulty, mode (blind/live), and timer settings
-2. **Share the code** - Friends join with the 6-character room code
-3. **Start the match** - Host starts, a random problem is fetched
-4. **Compete** - Write and submit code in the browser editor
-5. **Results** - Scored by speed, attempts, and test cases passed
+1. **Sign in** with GitHub OAuth
+2. **Create a room** -- pick difficulty, mode (blind/live), timer settings
+3. **Share the code** -- friends join with the 6-character room code
+4. **Start the match** -- host starts, a random LeetCode problem is fetched with real function signatures
+5. **Compete** -- write and submit code in the LeetCode-style editor
+6. **Results** -- scored by speed, attempts, and test cases passed
 
 ## Scoring
 
-- **Full Solve (primary):** `1000 - (1 * seconds) - (50 * failed_attempts)`, minimum 100
-- **Partial (fallback):** When nobody fully solves it, scored by test cases passed
-
-## Roadmap
-
-- [ ] Phase 1: Friends/study group mode (current)
-- [ ] Phase 2: Tournament/bracket mode with leaderboards
-- [ ] Phase 3: Classroom/interview mode
-- [ ] More languages (Java, JavaScript, Go)
-- [ ] Host picks problem, vote on problem, playlist mode
+- **Full Solve:** `1000 - seconds - (50 * failed_attempts)`, minimum 100
+- **Partial (fallback):** when nobody fully solves, scored by `(passed/total) * 1000 - time_penalty`
 
 ## License
 
