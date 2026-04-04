@@ -15,7 +15,9 @@
           var decoded = l.search.slice(1).split('&').map(function(s) {
             return s.replace(/~and~/g, '&')
           }).join('?');
-          window.history.replaceState(null, null, l.pathname + decoded + l.hash);
+          var base = l.pathname.replace(/\/$/, '');
+          var path = decoded.replace(/^\//, '');
+          window.history.replaceState(null, null, base + '/' + path + l.hash);
         }
       }(window.location))
     </script>
