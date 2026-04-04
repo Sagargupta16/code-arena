@@ -1,4 +1,4 @@
-import { createContext, useState, ReactNode } from "react";
+import { createContext, useState, type ReactNode } from "react";
 import { api } from "../services/api";
 
 interface AuthState {

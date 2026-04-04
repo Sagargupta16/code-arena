@@ -29,7 +29,7 @@ export function Arena() {
   const [codeText, setCodeText] = useState(() => getStarterCode(navState?.problem || null, "python"));
   const [result, setResult] = useState<SubmissionResult | null>(null);
   const [isRunning, setIsRunning] = useState(false);
-  const [statusEntries, setStatusEntries] = useState<Record<string, unknown>[]>([]);
+  const [statusEntries, setStatusEntries] = useState<{ user_id: string; username?: string; status: string; attempts: number; test_cases_passed: number }[]>([]);
   const [roomMode, setRoomMode] = useState<"blind" | "live_status">((navState?.mode as "blind" | "live_status") || "blind");
   const codePerLang = useRef<Record<Language, string>>({
     python: getStarterCode(navState?.problem || null, "python"),
