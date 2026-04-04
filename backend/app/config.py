@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expiry_minutes: int = 1440
     piston_url: str = "http://localhost:2000"
+    judge0_url: str = "https://ce.judge0.com"
     leetcode_api_url: str = "http://localhost:3000"
     github_client_id: str = ""
     github_client_secret: str = ""

@@ -8,25 +8,35 @@ from app.services.judge import ExecutionResult, execute_code, judge_submission
 
 
 @pytest.fixture
-def mock_piston_success():
+def mock_judge0_success():
     return {
-        "compile": {"stdout": "", "stderr": ""},
-        "run": {"stdout": "hello\n", "stderr": "", "code": 0, "wall_time": "0.015", "memory": 5242880},
+        "status": {"id": 3, "description": "Accepted"},
+        "stdout": "hello\n",
+        "stderr": None,
+        "compile_output": None,
+        "exit_code": 0,
+        "time": "0.015",
+        "memory": 5120,
     }
 
 
 @pytest.fixture
-def mock_piston_compile_error():
+def mock_judge0_compile_error():
     return {
-        "compile": {"stdout": "", "stderr": "error: expected ';' before '}' token"},
-        "run": {},
+        "status": {"id": 6, "description": "Compilation Error"},
+        "stdout": None,
+        "stderr": None,
+        "compile_output": "error: expected ';' before '}' token",
+        "exit_code": None,
+        "time": None,
+        "memory": None,
     }
 
 
 @pytest.mark.asyncio
-async def test_execute_code_success(mock_piston_success):
+async def test_execute_code_success(mock_judge0_success):
     mock_response = MagicMock()
-    mock_response.json.return_value = mock_piston_success
+    mock_response.json.return_value = mock_judge0_success
     mock_response.raise_for_status = MagicMock()
 
     with patch("app.services.judge.httpx.AsyncClient") as mock_client:
@@ -42,9 +52,9 @@ async def test_execute_code_success(mock_piston_success):
 
 
 @pytest.mark.asyncio
-async def test_execute_code_compile_error(mock_piston_compile_error):
+async def test_execute_code_compile_error(mock_judge0_compile_error):
     mock_response = MagicMock()
-    mock_response.json.return_value = mock_piston_compile_error
+    mock_response.json.return_value = mock_judge0_compile_error
     mock_response.raise_for_status = MagicMock()
 
     with patch("app.services.judge.httpx.AsyncClient") as mock_client:

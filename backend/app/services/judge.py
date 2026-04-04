@@ -6,9 +6,11 @@ import httpx
 
 from app.config import settings
 
+JUDGE0_URL = "https://ce.judge0.com"
+
 LANGUAGE_MAP = {
-    "cpp": {"language": "c++", "version": "10.2.0"},
-    "python": {"language": "python", "version": "3.10.0"},
+    "cpp": 54,      # C++ GCC 9.2.0
+    "python": 100,   # Python 3.12.5
 }
 
 
@@ -29,44 +31,66 @@ async def execute_code(
     time_limit_ms: int = 5000,
     memory_limit_mb: int = 256,
 ) -> ExecutionResult:
-    lang_config = LANGUAGE_MAP.get(language)
-    if not lang_config:
+    language_id = LANGUAGE_MAP.get(language)
+    if not language_id:
         raise ValueError(f"Unsupported language: {language}")
 
     payload = {
-        "language": lang_config["language"],
-        "version": lang_config["version"],
-        "files": [{"name": f"solution.{'cpp' if language == 'cpp' else 'py'}", "content": code}],
+        "source_code": code,
+        "language_id": language_id,
         "stdin": stdin,
-        "run_timeout": time_limit_ms,
-        "compile_timeout": 10000,
-        "run_memory_limit": memory_limit_mb * 1024 * 1024,
+        "cpu_time_limit": min(time_limit_ms / 1000, 15),
+        "memory_limit": memory_limit_mb * 1024,
     }
 
-    async with httpx.AsyncClient(base_url=settings.piston_url, timeout=30.0) as client:
-        resp = await client.post("/api/v2/execute", json=payload)
+    judge0_url = settings.judge0_url if hasattr(settings, "judge0_url") else JUDGE0_URL
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        resp = await client.post(
+            f"{judge0_url}/submissions?base64_encoded=false&wait=true",
+            json=payload,
+        )
         resp.raise_for_status()
         data = resp.json()
 
-    compile_output = data.get("compile", {})
-    run_output = data.get("run", {})
+    status_id = data.get("status", {}).get("id", 0)
+    time_sec = float(data.get("time") or 0)
+    memory_kb = int(data.get("memory") or 0)
 
-    if compile_output.get("stderr"):
+    if status_id == 6:  # Compilation Error
         return ExecutionResult(
             stdout="",
-            stderr=compile_output["stderr"],
+            stderr=data.get("compile_output", ""),
             exit_code=1,
             time_ms=0,
             memory_mb=0.0,
-            compile_error=compile_output["stderr"],
+            compile_error=data.get("compile_output", ""),
+        )
+
+    if status_id >= 7:  # Runtime errors (SIGSEGV, etc.)
+        return ExecutionResult(
+            stdout=data.get("stdout") or "",
+            stderr=data.get("stderr") or data.get("message") or "",
+            exit_code=1,
+            time_ms=int(time_sec * 1000),
+            memory_mb=round(memory_kb / 1024, 2),
+        )
+
+    if status_id == 5:  # Time Limit Exceeded
+        return ExecutionResult(
+            stdout="",
+            stderr="Time Limit Exceeded",
+            exit_code=0,
+            time_ms=time_limit_ms + 1,
+            memory_mb=round(memory_kb / 1024, 2),
         )
 
     return ExecutionResult(
-        stdout=run_output.get("stdout", "").strip(),
-        stderr=run_output.get("stderr", "").strip(),
-        exit_code=run_output.get("code", 0),
-        time_ms=int(float(run_output.get("wall_time", 0)) * 1000) if run_output.get("wall_time") else 0,
-        memory_mb=round(run_output.get("memory", 0) / (1024 * 1024), 2) if run_output.get("memory") else 0.0,
+        stdout=(data.get("stdout") or "").strip(),
+        stderr=(data.get("stderr") or "").strip(),
+        exit_code=int(data.get("exit_code") or 0),
+        time_ms=int(time_sec * 1000),
+        memory_mb=round(memory_kb / 1024, 2),
     )
 
 
