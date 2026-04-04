@@ -1,0 +1,15 @@
+{
+  "name": "code-arena",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c blue,green \"pnpm run dev:backend\" \"pnpm run dev:frontend\"",
+    "dev:backend": "cd backend && uvicorn main:app --reload --port 8000",
+    "dev:frontend": "cd frontend && pnpm dev",
+    "install:frontend": "cd frontend && pnpm install",
+    "install:backend": "cd backend && pip install -r requirements.txt",
+    "test:backend": "cd backend && python -m pytest tests/ -v"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
