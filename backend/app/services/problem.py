@@ -29,7 +29,7 @@ async def fetch_problems_list(
     limit: int = 50,
 ) -> list[dict]:
     logger.info("fetch_problems_list url=%s difficulty=%s tags=%s", settings.leetcode_api_url, difficulty, tags)
-    async with httpx.AsyncClient(base_url=settings.leetcode_api_url) as client:
+    async with httpx.AsyncClient(base_url=settings.leetcode_api_url, timeout=60.0) as client:
         resp = await client.get("/problems", params={"limit": limit})
         resp.raise_for_status()
         data = resp.json()
@@ -47,7 +47,7 @@ async def fetch_problems_list(
 
 
 async def fetch_problem_detail(slug: str) -> dict:
-    async with httpx.AsyncClient(base_url=settings.leetcode_api_url) as client:
+    async with httpx.AsyncClient(base_url=settings.leetcode_api_url, timeout=60.0) as client:
         resp = await client.get("/select", params={"titleSlug": slug})
         resp.raise_for_status()
         return resp.json()
