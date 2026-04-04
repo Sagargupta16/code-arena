@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     github_client_id: str = ""
     github_client_secret: str = ""
     github_redirect_uri: str = "http://localhost:5173/auth/callback"
+    cors_origins: str = "http://localhost:5173"
 
     model_config = {"env_file": "../.env", "extra": "ignore"}
 
