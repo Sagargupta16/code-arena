@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import random
 import re
 from datetime import datetime, timezone
@@ -8,6 +9,8 @@ import httpx
 
 from app.config import settings
 from app.db import get_db
+
+logger = logging.getLogger("code_arena.problem")
 
 LEETCODE_GRAPHQL_URL = "https://leetcode.com/graphql"
 
@@ -25,6 +28,7 @@ async def fetch_problems_list(
     tags: list[str] | None = None,
     limit: int = 50,
 ) -> list[dict]:
+    logger.info("fetch_problems_list url=%s difficulty=%s tags=%s", settings.leetcode_api_url, difficulty, tags)
     async with httpx.AsyncClient(base_url=settings.leetcode_api_url) as client:
         resp = await client.get("/problems", params={"limit": limit})
         resp.raise_for_status()
@@ -101,11 +105,14 @@ async def get_random_problem(
 
     chosen = random.choice(problems)
     slug = chosen["titleSlug"]
+    logger.info("get_random_problem chosen=%s from %d problems", slug, len(problems))
 
     cached = await db.problems.find_one({"slug": slug})
     if cached and cached.get("code_snippets", {}).get("cpp"):
+        logger.info("get_random_problem cache hit slug=%s", slug)
         return cached
 
+    logger.info("get_random_problem cache miss, fetching detail slug=%s", slug)
     detail = await fetch_problem_detail(slug)
     test_cases = parse_sample_cases(detail.get("question", ""))
     code_snippets = await fetch_code_snippets(slug)

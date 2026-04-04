@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 
 import httpx
 
 from app.config import settings
+
+logger = logging.getLogger("code_arena.judge")
 
 JUDGE0_URL = "https://ce.judge0.com"
 
@@ -44,6 +47,7 @@ async def execute_code(
     }
 
     judge0_url = settings.judge0_url if hasattr(settings, "judge0_url") else JUDGE0_URL
+    logger.info("execute lang=%s judge0=%s", language, judge0_url)
 
     async with httpx.AsyncClient(timeout=30.0) as client:
         resp = await client.post(
@@ -54,6 +58,8 @@ async def execute_code(
         data = resp.json()
 
     status_id = data.get("status", {}).get("id", 0)
+    status_desc = data.get("status", {}).get("description", "unknown")
+    logger.info("execute result status=%d (%s) time=%s memory=%s", status_id, status_desc, data.get("time"), data.get("memory"))
     time_sec = float(data.get("time") or 0)
     memory_kb = int(data.get("memory") or 0)
 

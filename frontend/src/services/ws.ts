@@ -6,16 +6,28 @@ export class ArenaSocket {
 
   connect(roomCode: string, token: string): void {
     const wsUrl = import.meta.env.VITE_WS_URL || `ws://${window.location.host}`;
-    this.ws = new WebSocket(`${wsUrl}/ws/${roomCode}?token=${token}`);
+    const url = `${wsUrl}/ws/${roomCode}?token=${token}`;
+    console.log("[WS] Connecting to:", url.replace(/token=.*/, "token=***"));
+    this.ws = new WebSocket(url);
+
+    this.ws.onopen = () => {
+      console.log("[WS] Connected");
+    };
 
     this.ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
+      console.log("[WS] Received:", data.event, data);
       const eventName = data.event;
       const eventHandlers = this.handlers.get(eventName) || [];
       eventHandlers.forEach((handler) => handler(data));
     };
 
-    this.ws.onclose = () => {
+    this.ws.onerror = (event) => {
+      console.error("[WS] Error:", event);
+    };
+
+    this.ws.onclose = (event) => {
+      console.log("[WS] Closed:", event.code, event.reason);
       const closeHandlers = this.handlers.get("close") || [];
       closeHandlers.forEach((handler) => handler({}));
     };
@@ -34,7 +46,10 @@ export class ArenaSocket {
 
   send(event: string, data: Record<string, any> = {}): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
+      console.log("[WS] Sending:", event, data);
       this.ws.send(JSON.stringify({ event, ...data }));
+    } else {
+      console.warn("[WS] Cannot send, state:", this.ws?.readyState);
     }
   }
 

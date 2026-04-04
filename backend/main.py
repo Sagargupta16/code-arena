@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -7,6 +8,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.db import connect_db, close_db
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
+logger = logging.getLogger("code_arena")
 from app.routes.auth import router as auth_router
 from app.routes.users import router as users_router
 from app.routes.rooms import router as rooms_router
@@ -16,8 +23,11 @@ from app.ws.handlers import router as ws_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    logger.info("starting up, connecting to MongoDB...")
     await connect_db()
+    logger.info("MongoDB connected, CORS origins=%s", settings.cors_origins)
     yield
+    logger.info("shutting down...")
     await close_db()
 
 
