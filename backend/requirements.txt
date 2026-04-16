@@ -1,9 +1,0 @@
-fastapi==0.115.*
-uvicorn[standard]==0.34.*
-motor==3.7.*
-pydantic[email]==2.11.*
-pydantic-settings==2.9.*
-python-jose[cryptography]==3.4.*
-httpx==0.28.*
-pytest==8.3.*
-pytest-asyncio==0.25.*
