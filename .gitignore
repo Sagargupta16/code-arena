@@ -44,3 +44,8 @@ mongo_data/
 # Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Added for consistency
+.env.local
+.env.*.local
+.next/
