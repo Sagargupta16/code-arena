@@ -43,7 +43,7 @@ jobs:
           VITE_API_URL: https://code-arena-backend-u61j.onrender.com
           VITE_WS_URL: wss://code-arena-backend-u61j.onrender.com
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: frontend/dist
 
