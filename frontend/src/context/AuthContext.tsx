@@ -29,7 +29,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithGitHub = async () => {
     const res = await api.getGitHubLoginUrl();
-    window.location.href = res.url;
+    // Validate redirect URL to prevent open-redirect attacks
+    const url = new URL(res.url, window.location.origin);
+    if (url.hostname === 'github.com') {
+      window.location.href = res.url;
+    }
   };
 
   const handleGitHubCallback = async (code: string) => {
