@@ -2,6 +2,8 @@
 
 Real-time competitive coding platform where 2-5 friends race to solve LeetCode problems with built-in C++ and Python execution.
 
+> **Status (2026-06-12):** the FastAPI backend was removed from this repository on 2026-04-16 and has not been restored. The [live demo](https://sagargupta.online/code-arena/) is a frontend-only preview -- the hosted backend is offline, so sign-in and matches do not work. This repo currently holds the React frontend, Docker scaffolding for supporting services, and docs.
+
 ## Features
 
 - **GitHub OAuth** -- sign in with GitHub, no passwords
@@ -18,9 +20,9 @@ Real-time competitive coding platform where 2-5 friends race to solve LeetCode p
 | Layer | Technology |
 |-------|-----------|
 | Frontend | React 19, TypeScript, Vite, Tailwind CSS, Monaco Editor |
-| Backend | FastAPI, Python 3.13, WebSocket, Motor (async MongoDB) |
+| Backend | FastAPI, Python 3.13, WebSocket, Motor (async MongoDB) -- removed from repo 2026-04-16 |
 | Auth | GitHub OAuth, JWT (python-jose) |
-| Database | MongoDB 7 |
+| Database | MongoDB 8 |
 | Code Execution | Piston (self-hosted, sandboxed) |
 | Problem Source | alfa-leetcode-api + LeetCode GraphQL |
 | Orchestration | Docker Compose |
@@ -30,17 +32,18 @@ Real-time competitive coding platform where 2-5 friends race to solve LeetCode p
 ### Prerequisites
 
 - Docker Desktop
-- Python 3.13+
 - Node.js 20+ with pnpm
 
-### Run with Docker Compose (full stack)
+### Run supporting services with Docker Compose
+
+`docker compose up -d` (full stack) no longer works -- the `backend` directory and the frontend Dockerfile are no longer in the repo. Only the supporting services start:
 
 ```bash
 git clone https://github.com/Sagargupta16/code-arena.git
 cd code-arena
 cp .env.example .env
 # Fill in GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET (see Auth Setup below)
-docker compose up -d
+docker compose up mongodb piston leetcode-api -d
 ```
 
 ### Run locally (dev mode)
@@ -50,18 +53,15 @@ docker compose up -d
 docker compose up mongodb leetcode-api -d
 
 # Fill in .env with GitHub OAuth credentials and set:
-#   MONGO_URI=mongodb://localhost:27017/code_arena
-#   LEETCODE_API_URL=http://localhost:3000
 #   VITE_API_URL=  (leave empty)
 #   VITE_WS_URL=   (leave empty)
 
-# Start both backend and frontend
-pnpm install
-pnpm dev
+# Start the frontend (the backend is no longer in this repo)
+cd frontend && pnpm install && pnpm dev
 ```
 
 - Frontend: http://localhost:5173
-- Backend API docs: http://localhost:8000/docs
+- Backend API docs: not available (backend removed from repo 2026-04-16)
 
 ### Auth Setup (GitHub OAuth)
 
@@ -81,40 +81,17 @@ pnpm dev
 ## Development
 
 ```bash
-# Both backend + frontend (from root)
-pnpm dev
-
-# Backend only
-cd backend && pip install -r requirements.txt && uvicorn main:app --reload --port 8000
-
-# Frontend only
+# Frontend (the only runnable part of the repo -- backend removed 2026-04-16)
 cd frontend && pnpm install && pnpm dev
-
-# Run backend tests
-cd backend && python -m pytest tests/ -v
-
-# Run a single test
-cd backend && python -m pytest tests/test_scoring.py -v
 ```
 
 ## Project Structure
 
 ```
 code-arena/
-  docker-compose.yml           # MongoDB, Piston, LeetCode API, backend, frontend
+  docker-compose.yml           # MongoDB, Piston, LeetCode API (backend/frontend services reference removed files)
   leetcode-api.Dockerfile      # Custom build for alfa-leetcode-api
-  package.json                 # Root scripts (pnpm dev runs both)
-  backend/
-    main.py                    # FastAPI app entry point
-    app/
-      config.py                # Pydantic settings from .env
-      db.py                    # MongoDB connection (Motor)
-      deps.py                  # Auth dependency (JWT verification)
-      routes/                  # auth, rooms, problems, users
-      services/                # auth, judge, problem, room, scoring
-      models/                  # Pydantic models (user, room, problem, submission)
-      ws/                      # WebSocket handlers + connection manager
-    tests/                     # 21 tests (auth, judge, problems, rooms, scoring, ws)
+  package.json                 # Root scripts (backend scripts are stale -- backend/ removed)
   frontend/
     src/
       pages/                   # Landing, Login, AuthCallback, Dashboard, Lobby, Arena, Results
@@ -124,6 +101,8 @@ code-arena/
       context/                 # AuthContext (GitHub OAuth + JWT)
       types/                   # TypeScript interfaces
 ```
+
+The `backend/` directory (FastAPI app, services, WebSocket handlers, 21 tests) was removed from the repo on 2026-04-16.
 
 ## How It Works
 
