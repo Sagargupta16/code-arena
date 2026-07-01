@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import type { Problem } from "../types";
 
 interface Props {
@@ -50,7 +51,7 @@ export function ProblemPanel({ problem }: Props) {
 
         <div
           className="problem-description text-sm text-gray-300 leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: problem.description }}
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(problem.description) }}
         />
       </div>
     </div>
