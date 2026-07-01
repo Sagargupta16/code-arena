@@ -9,6 +9,22 @@
       content="code-arena: real-time competitive coding arena with GitHub OAuth"
     />
     <title>code-arena</title>
+    <script type="text/javascript">
+      // Single Page Apps for GitHub Pages
+      // MIT License https://github.com/rafgraph/spa-github-pages
+      // Decodes the ?/ redirect written by public/404.html back into the real
+      // path so deep links (e.g. /room/ABC123) survive a refresh on GitHub Pages.
+      (function (l) {
+        if (l.search[1] === '/') {
+          var decoded = l.search.slice(1).split('&').map(function (s) {
+            return s.replace(/~and~/g, '&');
+          }).join('?');
+          window.history.replaceState(null, null,
+            l.pathname.slice(0, -1) + decoded + l.hash
+          );
+        }
+      })(window.location);
+    </script>
   </head>
   <body>
     <div id="root"></div>
