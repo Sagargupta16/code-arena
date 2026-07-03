@@ -1,10 +1,15 @@
 # Code Arena
 
-Real-time competitive coding platform where 2-5 friends race to solve LeetCode problems with built-in C++ and Python execution.
+[![CI](https://github.com/Sagargupta16/code-arena/actions/workflows/ci.yml/badge.svg)](https://github.com/Sagargupta16/code-arena/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-> **Status (2026-06-12):** the FastAPI backend was removed from this repository on 2026-04-16 and has not been restored. The [live demo](https://sagargupta.online/code-arena/) is a frontend-only preview -- the hosted backend is offline, so sign-in and matches do not work. This repo currently holds the React frontend, Docker scaffolding for supporting services, and docs.
+Frontend of a real-time competitive coding platform where 2-5 friends race to solve LeetCode problems.
+
+> **Note:** This is a sample/reference project -- it is not actively deployed. The FastAPI backend was removed from this repository on 2026-04-16, so the [live demo](https://sagargupta.online/code-arena/) is a UI-only preview: sign-in and matches do not work.
 
 ## Features
+
+The UI implements the full arena flow, designed to run against a WebSocket backend:
 
 - **GitHub OAuth** -- sign in with GitHub, no passwords
 - **Private rooms** -- 6-character code, 2-5 players
@@ -19,79 +24,31 @@ Real-time competitive coding platform where 2-5 friends race to solve LeetCode p
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | React 19, TypeScript, Vite, Tailwind CSS, Monaco Editor |
-| Backend | FastAPI, Python 3.13, WebSocket, Motor (async MongoDB) -- removed from repo 2026-04-16 |
-| Auth | GitHub OAuth, JWT (python-jose) |
-| Database | MongoDB 8 |
-| Code Execution | Piston (self-hosted, sandboxed) |
-| Problem Source | alfa-leetcode-api + LeetCode GraphQL |
-| Orchestration | Docker Compose |
+| Framework | React 19, TypeScript |
+| Build | Vite |
+| Styling | Tailwind CSS 4 |
+| Editor | Monaco Editor |
+| Routing | React Router 7 |
+
+The former backend stack (FastAPI, MongoDB, Piston, alfa-leetcode-api, Docker Compose) was removed on 2026-04-16 and is not part of this repo.
 
 ## Quick Start
 
-### Prerequisites
-
-- Docker Desktop
-- Node.js 20+ with pnpm
-
-### Run supporting services with Docker Compose
-
-`docker compose up -d` (full stack) no longer works -- the `backend` directory and the frontend Dockerfile are no longer in the repo. Only the supporting services start:
-
 ```bash
 git clone https://github.com/Sagargupta16/code-arena.git
-cd code-arena
-cp .env.example .env
-# Fill in GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET (see Auth Setup below)
-docker compose up mongodb piston leetcode-api -d
-```
-
-### Run locally (dev mode)
-
-```bash
-# Start MongoDB and LeetCode API via Docker
-docker compose up mongodb leetcode-api -d
-
-# Fill in .env with GitHub OAuth credentials and set:
-#   VITE_API_URL=  (leave empty)
-#   VITE_WS_URL=   (leave empty)
-
-# Start the frontend (the backend is no longer in this repo)
-cd frontend && pnpm install && pnpm dev
+cd code-arena/frontend
+pnpm install
+pnpm dev
 ```
 
 - Frontend: http://localhost:5173
-- Backend API docs: not available (backend removed from repo 2026-04-16)
 
-### Auth Setup (GitHub OAuth)
-
-1. Go to https://github.com/settings/developers
-2. Click **New OAuth App**
-3. Fill in:
-   - **Application name:** `Code Arena`
-   - **Homepage URL:** `http://localhost:5173`
-   - **Authorization callback URL:** `http://localhost:5173/auth/callback`
-4. Copy **Client ID** and generate a **Client Secret**
-5. Add them to `.env`:
-   ```
-   GITHUB_CLIENT_ID=your-client-id
-   GITHUB_CLIENT_SECRET=your-client-secret
-   ```
-
-## Development
-
-```bash
-# Frontend (the only runnable part of the repo -- backend removed 2026-04-16)
-cd frontend && pnpm install && pnpm dev
-```
+To point the UI at your own backend, set `VITE_API_URL` and `VITE_WS_URL` (see `.env.example`). In dev mode, `/api` and `/ws` are proxied to `localhost:8000` (vite.config.ts).
 
 ## Project Structure
 
 ```
 code-arena/
-  docker-compose.yml           # MongoDB, Piston, LeetCode API (backend/frontend services reference removed files)
-  leetcode-api.Dockerfile      # Custom build for alfa-leetcode-api
-  package.json                 # Root scripts (backend scripts are stale -- backend/ removed)
   frontend/
     src/
       pages/                   # Landing, Login, AuthCallback, Dashboard, Lobby, Arena, Results
@@ -101,8 +58,6 @@ code-arena/
       context/                 # AuthContext (GitHub OAuth + JWT)
       types/                   # TypeScript interfaces
 ```
-
-The `backend/` directory (FastAPI app, services, WebSocket handlers, 21 tests) was removed from the repo on 2026-04-16.
 
 ## How It Works
 

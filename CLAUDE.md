@@ -13,62 +13,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Code Arena is a real-time competitive coding platform where 2-5 friends race to solve LeetCode problems with built-in C++ and Python code execution. Monolith FARM stack architecture.
+Code Arena is the frontend of a real-time competitive coding platform where 2-5 friends race to solve LeetCode problems.
 
-**Status:** Phase 1 implementation complete. Backend (FastAPI + WebSocket + all services) and frontend (React 19 + Vite + all pages) are built. 21 backend tests passing. Needs Docker Compose end-to-end testing.
+**Status:** Sample/reference project. The FastAPI backend (and its Docker Compose stack) was removed from this repo on 2026-04-16. Only the React frontend remains; the live demo is UI-only.
 
 ## Tech Stack
 
-- **Backend:** FastAPI (Python 3.13), Motor (async MongoDB), WebSocket, python-jose (JWT), httpx
-- **Frontend:** React 19, TypeScript, Vite, Tailwind CSS, Monaco Editor
-- **Database:** MongoDB 7
-- **Code Execution:** Piston (self-hosted Docker container)
-- **Problem Source:** alfa-leetcode-api (self-hosted Docker container)
-- **Orchestration:** Docker Compose (5 services)
+- **Frontend:** React 19, TypeScript, Vite, Tailwind CSS 4, Monaco Editor, React Router 7
+- **Former backend (removed):** FastAPI, MongoDB, Piston, alfa-leetcode-api, Docker Compose
 
 ## Common Commands
 
 ```bash
-# Start everything (Docker)
-docker compose up -d
-
-# Dev mode (both backend + frontend from root)
-pnpm install && pnpm dev
-
-# Backend only
-cd backend && pip install -r requirements.txt && uvicorn main:app --reload --port 8000
-
-# Frontend only
+# Dev server
 cd frontend && pnpm install && pnpm dev
 
-# Run backend tests
-cd backend && python -m pytest tests/ -v
-
-# Run a single test file or test
-cd backend && python -m pytest tests/test_scoring.py -v
-cd backend && python -m pytest tests/test_scoring.py::test_full_solve_scoring -v
-
-# Install Piston runtimes (first time only)
-curl -X POST http://localhost:2000/api/v2/packages -H "Content-Type: application/json" -d '{"language": "python", "version": "3.10.0"}'
-curl -X POST http://localhost:2000/api/v2/packages -H "Content-Type: application/json" -d '{"language": "c++", "version": "10.2.0"}'
+# Lint / build
+cd frontend && pnpm lint
+cd frontend && pnpm build
 ```
 
 ## Architecture
 
-```
-docker-compose.yml
-  |- frontend        React 19 + Vite + Tailwind        :5173
-  |- backend         FastAPI + WebSocket                :8000
-  |- piston          Code execution engine              :2000
-  |- leetcode-api    alfa-leetcode-api                  :3000
-  |- mongodb         MongoDB 7                          :27017
-```
-
-- Backend serves REST API on `/api/*` and WebSocket on `/ws/{room_code}`
-- Frontend proxies `/api` and `/ws` to backend in dev mode (vite.config.ts)
-- Piston runs code in isolated sandboxes with time/memory limits
-- alfa-leetcode-api wraps LeetCode's undocumented GraphQL API
-- Timer is server-authoritative -- runs on backend, ticks broadcast every second via WebSocket
+- Frontend proxies `/api` and `/ws` to `localhost:8000` in dev mode (vite.config.ts); no backend ships in this repo
+- The protocol/scoring notes below describe the backend contract the UI was built against -- kept for reference
 
 ## Key Patterns
 
@@ -128,14 +96,8 @@ When `time_mode` is `difficulty_based`: Easy 15min, Medium 30min, Hard 60min. Cu
 
 ## Environment Variables
 
-All config in `.env` (see `.env.example`). Key vars:
-- `MONGO_URI` -- MongoDB connection string
-- `JWT_SECRET` -- Must change in production
-- `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` -- GitHub OAuth app credentials
-- `GITHUB_REDIRECT_URI` -- OAuth callback URL (default: `http://localhost:5173/auth/callback`)
-- `PISTON_URL` -- Piston container URL
-- `LEETCODE_API_URL` -- alfa-leetcode-api container URL
-- `VITE_API_URL` / `VITE_WS_URL` -- Frontend env vars for API/WS URLs
+All config in `.env` (see `.env.example`):
+- `VITE_API_URL` / `VITE_WS_URL` -- API/WS base URLs (leave empty to use the dev proxy)
 
 ## Design Documents
 
