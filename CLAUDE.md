@@ -15,28 +15,74 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Code Arena is the frontend of a real-time competitive coding platform where 2-5 friends race to solve LeetCode problems.
 
+<<<<<<< Updated upstream
 **Status:** Sample/reference project. The FastAPI backend (and its Docker Compose stack) was removed from this repo on 2026-04-16. Only the React frontend remains; the live demo is UI-only.
 
 ## Tech Stack
 
 - **Frontend:** React 19, TypeScript, Vite, Tailwind CSS 4, Monaco Editor, React Router 7
 - **Former backend (removed):** FastAPI, MongoDB, Piston, alfa-leetcode-api, Docker Compose
+=======
+**Status:** The FastAPI backend was removed from this repo on 2026-04-16 and has not been restored. The repo currently holds the React 19 + Vite frontend, Docker scaffolding for supporting services (MongoDB, Piston, alfa-leetcode-api), and design docs. The live demo is frontend-only -- sign-in and matches do not work. Backend sections below describe the design as specced, not code in the repo.
+
+## Tech Stack
+
+- **Backend:** FastAPI (Python 3.13), Motor (async MongoDB), WebSocket, python-jose (JWT), httpx -- removed from repo 2026-04-16
+- **Frontend:** React 19, TypeScript, Vite, Tailwind CSS, Monaco Editor
+- **Database:** MongoDB 8
+- **Code Execution:** Piston (self-hosted Docker container)
+- **Problem Source:** alfa-leetcode-api (self-hosted Docker container)
+- **Orchestration:** Docker Compose (5 services)
+>>>>>>> Stashed changes
 
 ## Common Commands
 
 ```bash
+<<<<<<< Updated upstream
 # Dev server
 cd frontend && pnpm install && pnpm dev
 
 # Lint / build
 cd frontend && pnpm lint
 cd frontend && pnpm build
+=======
+# Start supporting services (Docker) -- `docker compose up -d` full stack no longer works:
+# backend/ and the frontend Dockerfile are gone, so only these services start
+docker compose up mongodb piston leetcode-api -d
+
+# Frontend dev
+cd frontend && pnpm install && pnpm dev
+
+# Root package.json scripts (pnpm dev, test:backend, etc.) still reference backend/ --
+# the backend halves fail because the backend was removed from the repo on 2026-04-16
+
+# Install Piston runtimes (first time only)
+curl -X POST http://localhost:2000/api/v2/packages -H "Content-Type: application/json" -d '{"language": "python", "version": "3.10.0"}'
+curl -X POST http://localhost:2000/api/v2/packages -H "Content-Type: application/json" -d '{"language": "c++", "version": "10.2.0"}'
+>>>>>>> Stashed changes
 ```
 
 ## Architecture
 
+<<<<<<< Updated upstream
 - Frontend proxies `/api` and `/ws` to `localhost:8000` in dev mode (vite.config.ts); no backend ships in this repo
 - The protocol/scoring notes below describe the backend contract the UI was built against -- kept for reference
+=======
+```
+docker-compose.yml
+  |- frontend        React 19 + Vite + Tailwind        :5173  (build broken: no frontend Dockerfile)
+  |- backend         FastAPI + WebSocket                :8000  (build broken: backend/ removed)
+  |- piston          Code execution engine              :2000
+  |- leetcode-api    alfa-leetcode-api                  :3000
+  |- mongodb         MongoDB 8                          :27017
+```
+
+- Backend serves REST API on `/api/*` and WebSocket on `/ws/{room_code}`
+- Frontend proxies `/api` and `/ws` to backend in dev mode (vite.config.ts)
+- Piston runs code in isolated sandboxes with time/memory limits
+- alfa-leetcode-api wraps LeetCode's undocumented GraphQL API
+- Timer is server-authoritative -- runs on backend, ticks broadcast every second via WebSocket
+>>>>>>> Stashed changes
 
 ## Key Patterns
 
