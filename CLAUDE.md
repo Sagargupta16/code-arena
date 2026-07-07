@@ -136,8 +136,6 @@ When `time_mode` is `difficulty_based`: Easy 15min, Medium 30min, Hard 60min. Cu
 - **Python:** Type hints everywhere, `from __future__ import annotations`, f-strings, Pydantic v2
 - **TypeScript/React:** Functional components with hooks only, no class components
 - **CSS:** Tailwind only, no inline styles for layouts
-- **Git:** Conventional commits -- `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`
-- **Commits:** Never add `Co-Authored-By` trailers. Keep messages concise.
 - **Imports:** Absolute imports in Python (`from app.services.auth import ...`), relative in frontend (`../hooks/useAuth`)
 
 ## Environment Variables
