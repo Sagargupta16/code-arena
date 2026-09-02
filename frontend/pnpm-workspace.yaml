@@ -1,0 +1,2 @@
+overrides:
+  dompurify: '>=3.4.13'
