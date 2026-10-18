@@ -13,6 +13,7 @@ jobs:
     with:
       working-directory: frontend
       node-version: "24.x" # match deploy-frontend.yml
+      tests-before-build: true
   security:
     uses: Sagargupta16/shared-workflows/.github/workflows/security-scan.yml@main
     permissions:
