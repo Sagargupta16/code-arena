@@ -24,7 +24,7 @@ export function StatusBar({ entries, mode }: Props) {
           <span className={statusColor[e.status] || "text-gray-400"}>
             {e.status === "accepted" ? "AC" : `${e.test_cases_passed} passed`}
           </span>
-          <span className="text-gray-500">{e.attempts} attempts</span>
+          <span className="text-gray-500">{e.attempts} {e.attempts === 1 ? "attempt" : "attempts"}</span>
         </div>
       ))}
     </div>

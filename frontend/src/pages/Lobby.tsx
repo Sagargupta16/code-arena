@@ -1,24 +1,29 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router";
+import { Link, useParams, useNavigate } from "react-router";
 import { useAuth } from "../hooks/useAuth";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { api } from "../services/api";
+import { useConnectionState } from "../hooks/useConnectionState";
 import { PlayerList } from "../components/PlayerList";
+import { ConnectionPill } from "../components/ConnectionPill";
 import type { Player, Room } from "../types";
 
 export function Lobby() {
   const { code } = useParams<{ code: string }>();
-  const { token, userId } = useAuth();
+  const { token, userId, isDemo } = useAuth();
   const navigate = useNavigate();
   const socket = useWebSocket(code, token);
   const [room, setRoom] = useState<Room | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
+  const [error, setError] = useState("");
+  const connection = useConnectionState(socket);
 
   useEffect(() => {
     if (!code) return;
-    api.getRoom(code).then((r) => {
-      setRoom(r);
-    });
+    api
+      .getRoom(code)
+      .then((r) => setRoom(r))
+      .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
   }, [code]);
 
   useEffect(() => {
@@ -49,10 +54,18 @@ export function Lobby() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white p-8 flex flex-col items-center">
-      <h1 className="text-3xl font-bold mb-2">Room Lobby</h1>
+    <div className="min-h-screen bg-gray-950 text-white p-4 sm:p-8 flex flex-col items-center">
+      <div className="flex items-center gap-3 mb-2">
+        <h1 className="text-3xl font-bold">Room Lobby</h1>
+        <ConnectionPill state={connection} demo={isDemo} />
+      </div>
       <p className="text-5xl font-mono tracking-widest text-blue-400 mb-8">{code}</p>
       <p className="text-gray-400 mb-6">Share this code with friends to join</p>
+      {error && (
+        <p className="text-red-400 mb-6 text-center">
+          {error}. <Link to="/dashboard" className="text-blue-400 hover:underline">Back to dashboard</Link>
+        </p>
+      )}
 
       <div className="w-full max-w-md mb-8">
         <PlayerList players={players} hostId={room?.host_id || ""} />

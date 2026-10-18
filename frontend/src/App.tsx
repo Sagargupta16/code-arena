@@ -5,6 +5,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { Landing } from "./pages/Landing";
 import { Login } from "./pages/Login";
 import { AuthCallback } from "./pages/AuthCallback";
+import { DemoStart } from "./pages/DemoStart";
 import { Dashboard } from "./pages/Dashboard";
 import { Lobby } from "./pages/Lobby";
 import { Arena } from "./pages/Arena";
@@ -19,6 +20,7 @@ export default function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/demo" element={<DemoStart />} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/room/:code" element={<ProtectedRoute><Lobby /></ProtectedRoute>} />
           <Route path="/room/:code/arena" element={<ProtectedRoute><Arena /></ProtectedRoute>} />

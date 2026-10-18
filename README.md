@@ -2,11 +2,30 @@
 
 [![CI](https://github.com/Sagargupta16/code-arena/actions/workflows/ci.yml/badge.svg)](https://github.com/Sagargupta16/code-arena/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Live demo](https://img.shields.io/badge/demo-UI%20preview-informational)](https://sagargupta.online/code-arena/)
+[![Live demo](https://img.shields.io/badge/demo-play%20a%20match-success)](https://sagargupta.online/code-arena/demo)
 
 Frontend of a real-time competitive coding platform where 2-5 friends race to solve LeetCode problems.
 
-> **Note:** This is a sample/reference project -- it is not actively deployed. The FastAPI backend was removed from this repository on 2026-04-16, so the [live demo](https://sagargupta.online/code-arena/) is a UI-only preview: sign-in and matches do not work.
+**[Play a demo match](https://sagargupta.online/code-arena/demo)** -- no sign-in. You race two bots for 3 minutes, with a live status board and a final scoreboard.
+
+> **Note:** This is a sample/reference project. The FastAPI backend was removed from this repository on 2026-04-16, so GitHub sign-in does not work on the hosted site. Demo mode replaces the backend with a small server that runs in the browser tab (see [Demo mode](#demo-mode)).
+
+## Screenshots
+
+Captured by [`frontend/scripts/screenshots.mjs`](frontend/scripts/screenshots.mjs), which plays one demo match in Chromium at 1440px and 390px wide.
+
+| Lobby | Arena | Results |
+|-------|-------|---------|
+| ![Lobby with two bots joined](docs/screenshots/lobby-desktop.webp) | ![Arena mid-match with a wrong answer and the live status bar](docs/screenshots/arena-desktop.webp) | ![Final scoreboard](docs/screenshots/results-desktop.webp) |
+
+On a phone the arena stacks the problem, the editor and the test panel:
+
+<p>
+  <img src="docs/screenshots/landing-phone.webp" alt="Landing page on a phone" width="200">
+  <img src="docs/screenshots/lobby-phone.webp" alt="Lobby on a phone" width="200">
+  <img src="docs/screenshots/arena-phone.webp" alt="Arena on a phone" width="200">
+  <img src="docs/screenshots/results-phone.webp" alt="Results on a phone" width="200">
+</p>
 
 ## Features
 
@@ -20,6 +39,8 @@ The UI implements the full arena flow, designed to run against a WebSocket backe
 - **LeetCode-style editor** -- Monaco Editor with language toggle, test cases panel, submission results
 - **Server-authoritative timer** -- real-time sync via WebSocket
 - **Scoring** -- speed + attempts + test cases passed
+- **Demo mode** -- a full match against bots with no backend and no account
+- **Reconnecting socket** -- exponential backoff and a connection pill in the lobby and arena
 
 ## Tech Stack
 
@@ -31,7 +52,9 @@ The UI implements the full arena flow, designed to run against a WebSocket backe
 | Editor | Monaco Editor |
 | Routing | React Router 8 |
 | Sanitizing | DOMPurify (LeetCode problem HTML) |
-| Hosting | GitHub Pages, deployed by a manual GitHub Actions workflow |
+| Tests | Vitest |
+| Screenshots | Playwright |
+| Hosting | GitHub Pages, deployed by GitHub Actions on every push to `main` that touches `frontend/` |
 
 The former backend stack (FastAPI, MongoDB, Piston, alfa-leetcode-api, Docker Compose) was removed on 2026-04-16 and is not part of this repo.
 
@@ -52,10 +75,14 @@ To point the UI at your own backend, set `VITE_API_URL` and `VITE_WS_URL` (see `
 |---------|--------------|
 | `pnpm dev` | Vite dev server with the `/api` and `/ws` proxy |
 | `pnpm lint` | ESLint (typescript-eslint, React Hooks, React Refresh) |
+| `pnpm test` | Vitest: scoring, the demo judge, the demo room and the socket's reconnect logic |
 | `pnpm build` | `tsc -b` type check, then the production bundle in `dist/` |
 | `pnpm preview` | Serve the production bundle locally |
+| `pnpm screenshots` | Play a demo match against `pnpm preview` and write the README screenshots to `docs/screenshots/` |
 
-CI runs lint and build on pushes to `main` and on every pull request (Node 24, pnpm).
+The suite has 24 tests in 4 files. CI runs lint, the tests and the build on pushes to `main` and on every pull request (Node 24, pnpm). The Pages deploy runs the tests again before it builds.
+
+`pnpm screenshots` drives Playwright's Chromium; run `pnpm exec playwright install chromium` once if it is missing. Monaco loads from jsDelivr, so the run needs a network connection.
 
 ## Architecture
 
@@ -124,11 +151,37 @@ Every message is `{ "event": "namespace:action", ...payload }`. Server payloads 
 | Server to all (live mode) | `match:status_update` | `{ user_id, status, attempts, test_cases_passed }` |
 | Server to all | `match:finished` | `{ rankings, scoring_mode }` |
 
+### Demo mode
+
+`/demo` signs you in as a local player and swaps both transports for an in-browser server. Pages cannot tell the difference: they hold a `RoomSocket` and call the same `api` object either way.
+
+```mermaid
+flowchart LR
+  Pages["Pages<br/>Dashboard, Lobby, Arena, Results"]
+  Pages --> Api["services/api.ts"]
+  Pages --> Hook["useWebSocket"]
+  Api -- "real" --> REST["FastAPI REST"]
+  Api -- "demo" --> DemoApi["demo/api.ts"]
+  Hook -- "real" --> Sock["ArenaSocket<br/>WebSocket + backoff"]
+  Hook -- "demo" --> DemoSock["DemoSocket"]
+  Sock --> HUB["WebSocket hub"]
+  DemoApi --> Server["DemoServer<br/>rooms in memory"]
+  DemoSock --> Server
+  Server --> Room["DemoRoom<br/>clock, judge, bots, scoring"]
+```
+
+- `DemoRoom` plays the backend's half of the protocol: lobby joins, a 180-second server-side clock, `match:result` after a short judge delay, `match:status_update` in live mode, and `match:finished` with rankings from the same scoring module the tests cover.
+- Two bots (`ada`, `linus`) join your room and submit on a fixed schedule. Join any 6-character code instead and a third bot (`grace`) hosts and starts the match for you.
+- The judge is simulated and runs no code. A submission that never returns a value fails every case, your first one that returns something is a near miss (9 of 12 cases), and the next one is accepted.
+- Demo matches count toward the dashboard stats, kept in `localStorage`. Rooms live in memory, so a reload ends them.
+
 ### Design decisions
 
 - **Server-authoritative timer.** The client never counts down on its own; it renders `match:timer_tick`, so every player sees the same clock and nobody gains time by throttling a tab.
 - **JWT in the WebSocket query string.** Browsers cannot set an `Authorization` header on a WebSocket handshake, so REST uses a bearer header and the socket passes `?token=`.
 - **Sanitized problem HTML.** LeetCode descriptions arrive as HTML and are rendered only after `DOMPurify.sanitize`.
+- **Reconnect with backoff.** A dropped socket retries after 0.5s, 1s, 2s, 4s and 8s, then gives up and shows `Offline`. Close codes 1008 and 4000-4999 mean the server refused the connection on purpose (bad token, full room), so those never retry. `useConnectionState` reads the state through `useSyncExternalStore`, so only the pill re-renders.
+- **Trace logs stay in dev.** Sent and received frames carry submitted code, so `[WS]` logging only runs when `import.meta.env.DEV` is true.
 - **One socket per room and token.** `useWebSocket` returns the socket instance, so each page's effect lists it as a dependency and resubscribes cleanly (including under React StrictMode).
 - **Results survive the page change.** `match:finished` fires once; the arena forwards the standings through router state so the results page does not wait for an event that already happened.
 - **Deep links on GitHub Pages.** `public/404.html` and a small script in `index.html` (the spa-github-pages trick) turn a refresh on `/code-arena/room/ABC123` back into a client-side route.
@@ -140,12 +193,15 @@ Every message is `{ "event": "namespace:action", ...payload }`. Server payloads 
 code-arena/
   frontend/
     src/
-      pages/                   # Landing, Login, AuthCallback, Dashboard, Lobby, Arena, Results
-      components/              # Editor, ProblemPanel, TestResults, Timer, Navbar, etc.
-      hooks/                   # useAuth, useWebSocket, useTimer
-      services/                # REST API client, WebSocket client
-      context/                 # AuthContext (GitHub OAuth + JWT)
+      pages/                   # Landing, Login, AuthCallback, DemoStart, Dashboard, Lobby, Arena, Results
+      components/              # Editor, ProblemPanel, TestResults, Timer, ConnectionPill, Navbar, etc.
+      hooks/                   # useAuth, useWebSocket, useConnectionState, useTimer
+      services/                # REST client, WebSocket client, shared socket base, scoring
+      demo/                    # In-browser demo server: rooms, bots, simulated judge, problems
+      context/                 # AuthContext (GitHub OAuth + JWT, demo sign-in)
       types/                   # TypeScript interfaces
+    scripts/screenshots.mjs    # Playwright run that captures docs/screenshots/
+  docs/screenshots/            # README images (WebP, desktop and phone)
 ```
 
 ## How It Works
@@ -164,7 +220,8 @@ code-arena/
 
 ## Known limitations
 
-- No backend ships here, so the hosted demo cannot sign in or start a match.
+- No backend ships here, so GitHub sign-in does not work on the hosted site; demo mode is the way to try it.
+- The demo judge is simulated: it never executes your code.
 - **Run** and **Submit** send the same `match:submit` event; there is no separate "run against samples" endpoint.
 - LeetCode exposes only sample test cases, so judging covers those, not the full hidden suite.
 

@@ -5,13 +5,14 @@ import { api } from "../services/api";
 import type { RoomSettings, UserStats } from "../types";
 
 export function Dashboard() {
-  const { username } = useAuth();
+  const { username, isDemo } = useAuth();
   const navigate = useNavigate();
   const [joinCode, setJoinCode] = useState("");
   const [error, setError] = useState("");
   const [stats, setStats] = useState<UserStats | null>(null);
   const [settings, setSettings] = useState<RoomSettings>({
-    mode: "blind",
+    // The live board shows the bots' progress, which is the point of the demo.
+    mode: isDemo ? "live_status" : "blind",
     time_limit: 1800,
     time_mode: "difficulty_based",
     difficulty_filter: null,
@@ -44,8 +45,18 @@ export function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white p-8">
+    <div className="min-h-screen bg-gray-950 text-white p-4 sm:p-8">
       <h1 className="text-3xl font-bold mb-8">Welcome, {username}</h1>
+      {isDemo && (
+        <div className="mb-6 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-100">
+          <p className="font-semibold text-emerald-300 mb-1">Demo mode</p>
+          <p>
+            Rooms run on a small server inside this tab. Two bots join your lobby and race you for 3 minutes.
+            The judge is simulated (your code is not executed): a submission that returns nothing fails, your first
+            one that returns a value is a near miss, and the next is accepted. Join any 6-character code to have a bot host you.
+          </p>
+        </div>
+      )}
       {error && <p className="text-red-400 mb-4">{error}</p>}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

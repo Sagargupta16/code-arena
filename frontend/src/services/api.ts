@@ -1,4 +1,6 @@
 import type { Room, RoomSettings, User } from "../types";
+import { demoApi } from "../demo/api";
+import { isDemo } from "../demo/mode";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
@@ -25,7 +27,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return res.json();
 }
 
-export const api = {
+const httpApi = {
   getGitHubLoginUrl: () =>
     request<{ url: string }>("/api/auth/github/login"),
 
@@ -47,4 +49,18 @@ export const api = {
 
   joinRoom: (code: string) =>
     request<{ code: string; players: string[] }>(`/api/rooms/${code}/join`, { method: "POST" }),
+};
+
+export type Api = typeof httpApi;
+
+// Checked per call, so entering or leaving demo mode needs no reload.
+const backend = (): Api => (isDemo() ? demoApi : httpApi);
+
+export const api: Api = {
+  getGitHubLoginUrl: () => backend().getGitHubLoginUrl(),
+  githubCallback: (code) => backend().githubCallback(code),
+  getMe: () => backend().getMe(),
+  createRoom: (settings) => backend().createRoom(settings),
+  getRoom: (code) => backend().getRoom(code),
+  joinRoom: (code) => backend().joinRoom(code),
 };

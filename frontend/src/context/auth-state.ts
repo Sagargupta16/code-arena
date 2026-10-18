@@ -5,8 +5,10 @@ export interface AuthState {
   userId: string | null;
   username: string | null;
   isAuthenticated: boolean;
+  isDemo: boolean;
   loginWithGitHub: () => Promise<void>;
   handleGitHubCallback: (code: string) => Promise<void>;
+  startDemo: () => void;
   logout: () => void;
 }
 

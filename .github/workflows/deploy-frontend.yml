@@ -1,6 +1,12 @@
 name: Deploy Frontend to GitHub Pages
 
 on:
+  # Redeploy whenever the app changes on main, so the live demo never lags behind.
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/deploy-frontend.yml"
   workflow_dispatch:
 
 concurrency:
@@ -31,6 +37,8 @@ jobs:
           cache-dependency-path: frontend/pnpm-lock.yaml
 
       - run: pnpm install --frozen-lockfile
+
+      - run: pnpm test
 
       - run: pnpm build
         env:

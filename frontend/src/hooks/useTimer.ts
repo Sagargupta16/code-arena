@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 
-export function useTimer() {
-  const [remaining, setRemaining] = useState<number>(0);
+export function useTimer(initialSeconds = 0) {
+  const [remaining, setRemaining] = useState<number>(initialSeconds);
   const callbackRef = useRef<(() => void) | null>(null);
 
   // Stable identity (a state setter), so callers can list it as an effect dependency.

@@ -23,9 +23,9 @@ export function Scoreboard({ rankings, scoringMode }: Props) {
               {i + 1}
             </div>
             <div className="flex-1">
-              <p className="font-semibold">{r.user_id.slice(0, 8)}</p>
+              <p className="font-semibold">{r.username ?? r.user_id.slice(0, 8)}</p>
               <p className="text-sm text-gray-400">
-                {r.test_cases_passed} cases passed | {r.attempts} attempts
+                {r.test_cases_passed} cases passed | {r.attempts} {r.attempts === 1 ? "attempt" : "attempts"}
                 {r.solve_time_ms > 0 && ` | ${(r.solve_time_ms / 1000).toFixed(1)}s`}
               </p>
             </div>

@@ -18,6 +18,13 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
 export function TestResults({ result, isRunning, sampleCases }: Props) {
   const [activeTab, setActiveTab] = useState<"testcase" | "result">("testcase");
   const [activeCase, setActiveCase] = useState(0);
+  // Jump to the result tab when a run starts. Adjusting state while rendering
+  // (rather than in an effect) avoids a frame that still shows the old tab.
+  const [wasRunning, setWasRunning] = useState(isRunning);
+  if (isRunning !== wasRunning) {
+    setWasRunning(isRunning);
+    if (isRunning) setActiveTab("result");
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -124,7 +131,7 @@ function ResultView({ result }: { result: SubmissionResult }) {
         <span className={`font-bold text-sm ${config.color}`}>{config.label}</span>
       </div>
 
-      <div className="flex items-center gap-4 text-xs text-gray-400">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400">
         <span>
           Tests: <span className="text-gray-200 font-medium">{result.test_cases_passed}/{result.total_test_cases}</span>
         </span>

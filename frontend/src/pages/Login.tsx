@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router";
 import { useAuth } from "../hooks/useAuth";
 
 export function Login() {
@@ -15,7 +16,7 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
+    <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center px-4">
       <div className="bg-gray-900 p-8 rounded-lg w-full max-w-sm text-center">
         <h2 className="text-2xl font-bold mb-6">Login to Code Arena</h2>
         {error && <p className="text-red-400 mb-4">{error}</p>}
@@ -28,6 +29,10 @@ export function Login() {
           </svg>
           Continue with GitHub
         </button>
+        <p className="mt-5 text-sm text-gray-400">
+          No account handy?{" "}
+          <Link to="/demo" className="text-emerald-400 hover:underline">Try the demo</Link>
+        </p>
       </div>
     </div>
   );
