@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Code Arena is the frontend of a real-time competitive coding platform where 2-5 friends race to solve LeetCode problems.
 
-**Status:** Sample/reference project. The FastAPI backend (and its Docker Compose stack) was removed from this repo on 2026-04-16. Only the React frontend remains; the live demo is UI-only.
+**Status:** Sample/reference project. The FastAPI backend (and its Docker Compose stack) was removed from this repo on 2026-04-16. Only the React frontend remains; GitHub sign-in does not work on the hosted site, but `/demo` plays a full match against bots on an in-browser server.
 
 ## Tech Stack
 
@@ -29,9 +29,13 @@ Code Arena is the frontend of a real-time competitive coding platform where 2-5 
 # Dev server
 cd frontend && pnpm install && pnpm dev
 
-# Lint / build
+# Lint / test / build
 cd frontend && pnpm lint
+cd frontend && pnpm test
 cd frontend && pnpm build
+
+# README screenshots (needs `pnpm build` + `pnpm preview` running)
+cd frontend && pnpm screenshots
 ```
 
 ## Architecture
@@ -40,7 +44,9 @@ cd frontend && pnpm build
 - The protocol/scoring notes below describe the backend contract the UI was built against -- kept for reference
 - Server event payloads are typed in `ServerEvents` (`src/types/index.ts`); `ArenaSocket.on()` infers the payload from the event name
 - `useWebSocket` returns the socket instance (not a ref) so page effects can depend on it and resubscribe
-- CI runs lint + build through `Sagargupta16/shared-workflows` node-ci on Node 24
+- `ArenaSocket` and `DemoSocket` both extend `RoomSocket` (`services/socketBase.ts`): typed `on()`, connection state for `useConnectionState`. `ArenaSocket` reconnects with backoff
+- Demo mode (`src/demo/`): `isDemo()` (a `localStorage` flag set by `/demo`) routes `api` to `demoApi` and `useWebSocket` to `DemoSocket`; `DemoRoom` implements the server side of the protocol with bots and a simulated judge. Scoring lives in `services/scoring.ts`
+- CI runs lint + tests + build through `Sagargupta16/shared-workflows` node-ci on Node 24; Pages deploys on push to main when `frontend/` changes
 
 ## Key Patterns
 
