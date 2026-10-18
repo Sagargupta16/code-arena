@@ -1,17 +1,6 @@
-import { createContext, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { api } from "../services/api";
-
-interface AuthState {
-  token: string | null;
-  userId: string | null;
-  username: string | null;
-  isAuthenticated: boolean;
-  loginWithGitHub: () => Promise<void>;
-  handleGitHubCallback: (code: string) => Promise<void>;
-  logout: () => void;
-}
-
-export const AuthContext = createContext<AuthState | null>(null);
+import { AuthContext } from "./auth-state";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(localStorage.getItem("token"));

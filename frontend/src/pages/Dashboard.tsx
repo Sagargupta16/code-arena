@@ -2,14 +2,14 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useAuth } from "../hooks/useAuth";
 import { api } from "../services/api";
-import type { RoomSettings } from "../types";
+import type { RoomSettings, UserStats } from "../types";
 
 export function Dashboard() {
   const { username } = useAuth();
   const navigate = useNavigate();
   const [joinCode, setJoinCode] = useState("");
   const [error, setError] = useState("");
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<UserStats | null>(null);
   const [settings, setSettings] = useState<RoomSettings>({
     mode: "blind",
     time_limit: 1800,
@@ -27,8 +27,8 @@ export function Dashboard() {
     try {
       const res = await api.createRoom(settings);
       navigate(`/room/${res.code}`);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
     }
   };
 
@@ -38,8 +38,8 @@ export function Dashboard() {
     try {
       await api.joinRoom(joinCode.toUpperCase());
       navigate(`/room/${joinCode.toUpperCase()}`);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
     }
   };
 
@@ -75,7 +75,7 @@ export function Dashboard() {
               <label className="block text-sm text-gray-400 mb-1">Mode</label>
               <select
                 value={settings.mode}
-                onChange={(e) => setSettings({ ...settings, mode: e.target.value as any })}
+                onChange={(e) => setSettings({ ...settings, mode: e.target.value as RoomSettings["mode"] })}
                 className="w-full p-2 bg-gray-800 rounded border border-gray-700"
               >
                 <option value="blind">Blind Race</option>
@@ -86,7 +86,7 @@ export function Dashboard() {
               <label className="block text-sm text-gray-400 mb-1">Difficulty</label>
               <select
                 value={settings.difficulty_filter || ""}
-                onChange={(e) => setSettings({ ...settings, difficulty_filter: e.target.value || null } as any)}
+                onChange={(e) => setSettings({ ...settings, difficulty_filter: (e.target.value || null) as RoomSettings["difficulty_filter"] })}
                 className="w-full p-2 bg-gray-800 rounded border border-gray-700"
               >
                 <option value="">Any</option>
@@ -99,7 +99,7 @@ export function Dashboard() {
               <label className="block text-sm text-gray-400 mb-1">Timer</label>
               <select
                 value={settings.time_mode}
-                onChange={(e) => setSettings({ ...settings, time_mode: e.target.value as any })}
+                onChange={(e) => setSettings({ ...settings, time_mode: e.target.value as RoomSettings["time_mode"] })}
                 className="w-full p-2 bg-gray-800 rounded border border-gray-700"
               >
                 <option value="difficulty_based">Auto (by difficulty)</option>

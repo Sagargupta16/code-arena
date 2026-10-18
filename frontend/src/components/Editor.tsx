@@ -11,17 +11,6 @@ interface Props {
   isRunning: boolean;
 }
 
-const FALLBACK_CODE: Record<Language, string> = {
-  cpp: `class Solution {
-public:
-    // write your solution here
-};`,
-  python: `class Solution:
-    # write your solution here
-    pass
-`,
-};
-
 export function Editor({ language, onLanguageChange, code, onCodeChange, onRun, onSubmit, isRunning }: Props) {
   const handleLangSwitch = (lang: Language) => {
     if (lang === language) return;
@@ -30,7 +19,7 @@ export function Editor({ language, onLanguageChange, code, onCodeChange, onRun, 
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center px-3 py-1.5 bg-gray-900/80 border-b border-gray-700">
+      <div className="flex flex-wrap items-center gap-y-1.5 px-3 py-1.5 bg-gray-900/80 border-b border-gray-700">
         <div className="flex items-center gap-1.5 text-xs text-gray-400">
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
@@ -40,7 +29,7 @@ export function Editor({ language, onLanguageChange, code, onCodeChange, onRun, 
         <div className="ml-4 flex items-center gap-0.5 bg-gray-800 rounded p-0.5">
           <button
             onClick={() => handleLangSwitch("cpp")}
-            className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+            className={`px-2.5 py-1 rounded text-xs font-medium whitespace-nowrap transition-colors ${
               language === "cpp"
                 ? "bg-gray-600 text-white"
                 : "text-gray-400 hover:text-gray-300"
@@ -50,7 +39,7 @@ export function Editor({ language, onLanguageChange, code, onCodeChange, onRun, 
           </button>
           <button
             onClick={() => handleLangSwitch("python")}
-            className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+            className={`px-2.5 py-1 rounded text-xs font-medium whitespace-nowrap transition-colors ${
               language === "python"
                 ? "bg-gray-600 text-white"
                 : "text-gray-400 hover:text-gray-300"
@@ -108,5 +97,3 @@ export function Editor({ language, onLanguageChange, code, onCodeChange, onRun, 
     </div>
   );
 }
-
-export { FALLBACK_CODE };

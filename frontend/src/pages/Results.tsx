@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router";
+import { useParams, useNavigate, useLocation } from "react-router";
 import { useAuth } from "../hooks/useAuth";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { Scoreboard } from "../components/Scoreboard";
@@ -9,11 +9,15 @@ export function Results() {
   const { code: roomCode } = useParams<{ code: string }>();
   const { token } = useAuth();
   const navigate = useNavigate();
-  const socketRef = useWebSocket(roomCode, token);
-  const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
+  const location = useLocation();
+  const socket = useWebSocket(roomCode, token);
+  // Arena forwards the final standings it received, because match:finished is
+  // broadcast once and has already fired by the time this page connects.
+  const [matchResult, setMatchResult] = useState<MatchResult | null>(
+    (location.state as { result?: MatchResult } | null)?.result ?? null
+  );
 
   useEffect(() => {
-    const socket = socketRef.current;
     if (!socket) return;
 
     const unsub = socket.on("match:finished", (data) => {
@@ -21,7 +25,7 @@ export function Results() {
     });
 
     return unsub;
-  }, [socketRef.current]);
+  }, [socket]);
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center p-8">

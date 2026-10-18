@@ -1,3 +1,5 @@
+import type { Room, RoomSettings, User } from "../types";
+
 const API_URL = import.meta.env.VITE_API_URL || "";
 
 function getToken(): string | null {
@@ -33,15 +35,15 @@ export const api = {
       body: JSON.stringify({ code }),
     }),
 
-  getMe: () => request<{ id: string; username: string; avatar: string; stats: any }>("/api/users/me"),
+  getMe: () => request<User>("/api/users/me"),
 
-  createRoom: (settings: any) =>
+  createRoom: (settings: RoomSettings) =>
     request<{ code: string }>("/api/rooms", {
       method: "POST",
       body: JSON.stringify({ settings }),
     }),
 
-  getRoom: (code: string) => request<any>(`/api/rooms/${code}`),
+  getRoom: (code: string) => request<Room>(`/api/rooms/${code}`),
 
   joinRoom: (code: string) =>
     request<{ code: string; players: string[] }>(`/api/rooms/${code}/join`, { method: "POST" }),

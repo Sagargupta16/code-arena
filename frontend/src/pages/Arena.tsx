@@ -3,12 +3,13 @@ import { useParams, useNavigate, useLocation } from "react-router";
 import { useAuth } from "../hooks/useAuth";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useTimer } from "../hooks/useTimer";
-import { Editor, FALLBACK_CODE } from "../components/Editor";
+import { Editor } from "../components/Editor";
+import { FALLBACK_CODE } from "../components/fallbackCode";
 import { Timer } from "../components/Timer";
 import { ProblemPanel } from "../components/ProblemPanel";
 import { TestResults } from "../components/TestResults";
 import { StatusBar } from "../components/StatusBar";
-import type { Problem, SubmissionResult, Language } from "../types";
+import type { Problem, SubmissionResult, Language, StatusEntry } from "../types";
 
 function getStarterCode(problem: Problem | null, lang: Language): string {
   if (problem?.code_snippets?.[lang]) return problem.code_snippets[lang];
@@ -20,8 +21,9 @@ export function Arena() {
   const { token } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const socketRef = useWebSocket(roomCode, token);
+  const socket = useWebSocket(roomCode, token);
   const timer = useTimer();
+  const { setFromServer } = timer;
 
   const navState = location.state as { problem?: Problem; timeLimit?: number; mode?: string } | null;
   const [problem, setProblem] = useState<Problem | null>(navState?.problem || null);
@@ -29,7 +31,7 @@ export function Arena() {
   const [codeText, setCodeText] = useState(() => getStarterCode(navState?.problem || null, "python"));
   const [result, setResult] = useState<SubmissionResult | null>(null);
   const [isRunning, setIsRunning] = useState(false);
-  const [statusEntries, setStatusEntries] = useState<{ user_id: string; username?: string; status: string; attempts: number; test_cases_passed: number }[]>([]);
+  const [statusEntries, setStatusEntries] = useState<StatusEntry[]>([]);
   const [roomMode, setRoomMode] = useState<"blind" | "live_status">((navState?.mode as "blind" | "live_status") || "blind");
   const codePerLang = useRef<Record<Language, string>>({
     python: getStarterCode(navState?.problem || null, "python"),
@@ -37,11 +39,10 @@ export function Arena() {
   });
 
   useEffect(() => {
-    const socket = socketRef.current;
     if (!socket) return;
 
     const unsub1 = socket.on("match:problem", (data) => {
-      const p = data.problem as Problem;
+      const p = data.problem;
       setProblem(p);
       setRoomMode(data.mode || "blind");
       const pyCode = getStarterCode(p, "python");
@@ -51,7 +52,7 @@ export function Arena() {
     });
 
     const unsub2 = socket.on("match:timer_tick", (data) => {
-      timer.setFromServer(data.remaining_seconds);
+      setFromServer(data.remaining_seconds);
     });
 
     const unsub3 = socket.on("match:result", (data) => {
@@ -71,12 +72,12 @@ export function Arena() {
       });
     });
 
-    const unsub5 = socket.on("match:finished", () => {
-      navigate(`/room/${roomCode}/results`);
+    const unsub5 = socket.on("match:finished", (data) => {
+      navigate(`/room/${roomCode}/results`, { state: { result: data } });
     });
 
     return () => { unsub1(); unsub2(); unsub3(); unsub4(); unsub5(); };
-  }, [socketRef.current, roomCode, navigate]);
+  }, [socket, roomCode, navigate, language, setFromServer]);
 
   const handleLanguageChange = (lang: Language) => {
     codePerLang.current[language] = codeText;
@@ -87,30 +88,32 @@ export function Arena() {
   const handleSubmit = () => {
     setIsRunning(true);
     setResult(null);
-    socketRef.current?.send("match:submit", { code: codeText, language });
+    socket?.send("match:submit", { code: codeText, language });
   };
 
   const isUrgent = timer.remaining > 0 && timer.remaining <= 60;
 
   return (
-    <div className="h-screen bg-gray-950 text-white flex flex-col overflow-hidden">
+    // Fill the viewport below the 3.25rem Navbar; plain h-screen pushed the
+    // status bar and test panel below the fold.
+    <div className="h-[calc(100dvh-3.25rem)] bg-gray-950 text-white flex flex-col overflow-hidden">
       {/* Top bar */}
-      <div className="h-11 bg-gray-900 px-4 flex items-center justify-between border-b border-gray-800 shrink-0">
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold text-gray-300">Code Arena</span>
+      <div className="h-11 bg-gray-900 px-3 sm:px-4 flex items-center justify-between gap-3 border-b border-gray-800 shrink-0">
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="text-sm font-semibold text-gray-300 whitespace-nowrap">Code Arena</span>
           <div className="w-px h-5 bg-gray-700" />
           <Timer formatted={timer.formatted} remaining={timer.remaining} />
           {problem && (
             <>
               <div className="w-px h-5 bg-gray-700" />
-              <span className="text-sm text-gray-400">
+              <span className="text-sm text-gray-400 truncate">
                 {problem.leetcode_id ? `${problem.leetcode_id}. ` : ""}{problem.title}
               </span>
               <DifficultyBadge difficulty={problem.difficulty} />
             </>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           {isUrgent && (
             <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full animate-pulse">
               Time running out!
@@ -121,14 +124,15 @@ export function Arena() {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex overflow-hidden">
+      {/* Stacked and scrollable on phones, side by side from md up */}
+      <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden">
         {/* Left: Problem */}
-        <div className="w-[45%] border-r border-gray-800 overflow-hidden flex flex-col">
+        <div className="h-[45dvh] shrink-0 md:h-auto md:shrink md:w-[45%] border-b md:border-b-0 md:border-r border-gray-800 overflow-hidden flex flex-col">
           <ProblemPanel problem={problem} />
         </div>
 
         {/* Right: Editor + Results */}
-        <div className="w-[55%] flex flex-col overflow-hidden">
+        <div className="h-[85dvh] shrink-0 md:h-auto md:shrink md:w-[55%] flex flex-col overflow-hidden">
           <div className="flex-1 min-h-0">
             <Editor
               language={language}

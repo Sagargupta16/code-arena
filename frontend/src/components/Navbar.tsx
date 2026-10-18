@@ -5,17 +5,17 @@ export function Navbar() {
   const { isAuthenticated, username, logout } = useAuth();
 
   return (
-    <nav className="bg-gray-900 text-white px-6 py-3 flex items-center justify-between">
+    <nav className="h-13 bg-gray-900 text-white px-4 sm:px-6 flex items-center justify-between gap-4">
       <Link to="/" className="text-xl font-bold">
         Code Arena
       </Link>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 min-w-0">
         {isAuthenticated ? (
           <>
             <Link to="/dashboard" className="hover:text-gray-300">
               Dashboard
             </Link>
-            <span className="text-gray-400">{username}</span>
+            <span className="text-gray-400 truncate max-w-[8rem] sm:max-w-none">{username}</span>
             <button onClick={logout} className="text-red-400 hover:text-red-300">
               Logout
             </button>

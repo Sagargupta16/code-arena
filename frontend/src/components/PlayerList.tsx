@@ -1,7 +1,4 @@
-interface Player {
-  id: string;
-  username: string;
-}
+import type { Player } from "../types";
 
 interface Props {
   players: Player[];

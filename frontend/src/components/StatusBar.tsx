@@ -1,10 +1,4 @@
-interface StatusEntry {
-  user_id: string;
-  username?: string;
-  status: string;
-  attempts: number;
-  test_cases_passed: number;
-}
+import type { StatusEntry } from "../types";
 
 interface Props {
   entries: StatusEntry[];
@@ -23,9 +17,9 @@ export function StatusBar({ entries, mode }: Props) {
   };
 
   return (
-    <div className="bg-gray-800 border-t border-gray-700 px-4 py-2 flex gap-6">
+    <div className="bg-gray-800 border-t border-gray-700 px-4 py-2 flex gap-6 overflow-x-auto shrink-0">
       {entries.map((e) => (
-        <div key={e.user_id} className="flex items-center gap-2 text-sm">
+        <div key={e.user_id} className="flex items-center gap-2 text-sm whitespace-nowrap">
           <span className="font-semibold">@{e.username || e.user_id.slice(0, 8)}</span>
           <span className={statusColor[e.status] || "text-gray-400"}>
             {e.status === "accepted" ? "AC" : `${e.test_cases_passed} passed`}
