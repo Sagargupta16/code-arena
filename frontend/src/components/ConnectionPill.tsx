@@ -12,17 +12,16 @@ const STYLES: Record<ConnectionState, { label: string; dot: string; text: string
   closed: { label: "Offline", dot: "bg-red-400", text: "text-red-300" },
 };
 
-export function ConnectionPill({ state, demo = false }: Props) {
+export function ConnectionPill({ state, demo = false }: Readonly<Props>) {
   const style = STYLES[state];
   const label = demo && state === "open" ? "Demo" : style.label;
   return (
-    <span
-      role="status"
+    <output
       title={demo ? "Demo mode: in-browser server with bot opponents" : `Connection: ${style.label}`}
       className={`inline-flex items-center gap-1.5 text-xs font-medium bg-gray-800 px-2 py-1 rounded ${style.text}`}
     >
       <span className={`w-2 h-2 rounded-full ${style.dot}`} />
       <span className="hidden sm:inline">{label}</span>
-    </span>
+    </output>
   );
 }

@@ -1,12 +1,13 @@
 import type { MatchResult, Player, RoomSettings } from "../types";
 import { BOT_HOST, OPPONENTS, type Bot } from "./bots";
 import { BOT_JOIN_GAP_MS, DEMO_TIME_LIMIT } from "./config";
+import { randomIndex } from "./random";
 import { DemoRoom } from "./room";
 
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 function randomCode(): string {
-  return Array.from({ length: 6 }, () => CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)]).join("");
+  return Array.from({ length: 6 }, () => CODE_ALPHABET[randomIndex(CODE_ALPHABET.length)]).join("");
 }
 
 /** Bots drop into the lobby one by one, like friends opening the invite. */
@@ -16,9 +17,9 @@ function joinLater(room: DemoRoom, bots: Bot[]): void {
 
 /** Registry of demo rooms. Rooms live in memory for the life of the tab. */
 export class DemoServer {
-  private rooms = new Map<string, DemoRoom>();
+  private readonly rooms = new Map<string, DemoRoom>();
 
-  private onFinished: (result: MatchResult, room: DemoRoom) => void;
+  private readonly onFinished: (result: MatchResult, room: DemoRoom) => void;
 
   constructor(onFinished: (result: MatchResult, room: DemoRoom) => void = () => {}) {
     this.onFinished = onFinished;

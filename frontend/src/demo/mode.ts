@@ -11,7 +11,10 @@ export function isDemo(): boolean {
   return localStorage.getItem(DEMO_FLAG) === "1";
 }
 
-export function setDemo(on: boolean): void {
-  if (on) localStorage.setItem(DEMO_FLAG, "1");
-  else localStorage.removeItem(DEMO_FLAG);
+export function enableDemo(): void {
+  localStorage.setItem(DEMO_FLAG, "1");
+}
+
+export function disableDemo(): void {
+  localStorage.removeItem(DEMO_FLAG);
 }

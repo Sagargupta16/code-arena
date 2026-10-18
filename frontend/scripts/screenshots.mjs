@@ -50,15 +50,23 @@ async function toWebp(png, width) {
   return Buffer.from(webp, "base64");
 }
 
-/** Capture the current screen at both widths, then restore the desktop size. */
+const SHOTS = [
+  { label: "desktop", size: DESKTOP, width: 1600 },
+  { label: "phone", size: PHONE, width: 780 },
+];
+
+async function shootAt(name, { label, size, width }) {
+  await page.setViewportSize(size);
+  await page.waitForTimeout(600);
+  const file = `${name}-${label}.webp`;
+  await writeFile(OUT + file, await toWebp(await page.screenshot(), width));
+  console.log("saved", file);
+}
+
+/** Capture the current screen at each width in turn, then restore the desktop size. */
 async function shoot(name) {
-  for (const [label, size, width] of [["desktop", DESKTOP, 1600], ["phone", PHONE, 780]]) {
-    await page.setViewportSize(size);
-    await page.waitForTimeout(600);
-    const file = `${name}-${label}.webp`;
-    await writeFile(OUT + file, await toWebp(await page.screenshot(), width));
-    console.log("saved", file);
-  }
+  // One page, one viewport at a time: the shots have to run in sequence.
+  await SHOTS.reduce((prev, shot) => prev.then(() => shootAt(name, shot)), Promise.resolve());
   await page.setViewportSize(DESKTOP);
 }
 

@@ -9,8 +9,8 @@ type Handler = (data: unknown) => void;
  * the in-browser demo server client, so pages never know which one they hold.
  */
 export abstract class RoomSocket {
-  private handlers = new Map<string, Handler[]>();
-  private stateListeners = new Set<() => void>();
+  private readonly handlers = new Map<string, Handler[]>();
+  private readonly stateListeners = new Set<() => void>();
   private state: ConnectionState = "closed";
 
   abstract connect(roomCode: string, token: string): void;

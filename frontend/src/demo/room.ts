@@ -4,6 +4,7 @@ import type { Bot } from "./bots";
 import { BOT_HOST_START_MS, DEMO_TIME_LIMIT, JUDGE_DELAY_MS } from "./config";
 import { DEMO_TOTAL_CASES, judgeDemo, returnsValue } from "./judge";
 import { DEMO_PROBLEMS, problemsFor, type DemoProblem } from "./problems";
+import { randomIndex } from "./random";
 import { applyVerdict, newStanding, toOutcome, type Standing } from "./standings";
 
 export type Send = (event: string, data: Record<string, unknown>) => void;
@@ -18,9 +19,9 @@ export class DemoRoom {
   readonly code: string;
   readonly hostId: string;
   readonly settings: RoomSettings;
-  private onFinished: (result: MatchResult) => void;
-  private bots = new Map<string, Bot>();
-  private clients = new Set<Send>();
+  private readonly onFinished: (result: MatchResult) => void;
+  private readonly bots = new Map<string, Bot>();
+  private readonly clients = new Set<Send>();
   private matchTimers: ReturnType<typeof setTimeout>[] = [];
   private ticker: ReturnType<typeof setInterval> | undefined;
   private hostStartPending = false;
@@ -71,14 +72,14 @@ export class DemoRoom {
 
   receive(userId: string, event: string, data: Record<string, unknown>): void {
     if (event === "match:start") this.start(userId);
-    if (event === "match:submit") this.submit(userId, String(data.code ?? ""), data.language as Language);
+    if (event === "match:submit") this.submit(userId, typeof data.code === "string" ? data.code : "", data.language as Language);
   }
 
   private start(by: string): void {
     if (by !== this.hostId || this.status === "in_progress" || this.members.length < 2) return;
     const pool = problemsFor(this.settings.difficulty_filter);
     const choices = pool.length ? pool : DEMO_PROBLEMS;
-    this.demo = choices[Math.floor(Math.random() * choices.length)];
+    this.demo = choices[randomIndex(choices.length)];
     this.status = "in_progress";
     this.startedAt = Date.now();
     this.standings = new Map(this.members.map((m) => [m.id, newStanding()]));
@@ -101,7 +102,7 @@ export class DemoRoom {
 
   private submit(userId: string, code: string, language: Language): void {
     const standing = this.standings.get(userId);
-    if (this.status !== "in_progress" || !standing || standing.solvedAt !== null) return;
+    if (this.status !== "in_progress" || standing?.solvedAt !== null) return;
     const verdict = judgeDemo({ code, language, demo: this.demo, priorAttempts: standing.returned });
     if (returnsValue(code)) standing.returned += 1;
     this.later(JUDGE_DELAY_MS, () => {
@@ -112,7 +113,7 @@ export class DemoRoom {
 
   private record(userId: string, result: SubmissionResult["result"], passed: number): void {
     const standing = this.standings.get(userId);
-    if (this.status !== "in_progress" || !standing || standing.solvedAt !== null) return;
+    if (this.status !== "in_progress" || standing?.solvedAt !== null) return;
     applyVerdict(standing, result, passed, this.elapsed());
     if (this.settings.mode === "live_status") {
       const username = this.members.find((m) => m.id === userId)?.username;

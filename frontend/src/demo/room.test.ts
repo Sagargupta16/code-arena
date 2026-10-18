@@ -75,7 +75,7 @@ describe("DemoRoom", () => {
     expect(rankings.map((r) => r.score)).toEqual([939, 909, 830]);
 
     const updates = named("match:status_update");
-    expect(updates.length).toBe(2 + 2 + 3);
+    expect(updates).toHaveLength(2 + 2 + 3);
     expect(updates.every((u) => typeof u.username === "string")).toBe(true);
     expect(named("match:finished")).toHaveLength(1);
   });
