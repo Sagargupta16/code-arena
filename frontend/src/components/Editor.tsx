@@ -1,4 +1,5 @@
-import MonacoEditor from "@monaco-editor/react";
+import { useState } from "react";
+import MonacoEditor, { type OnMount } from "@monaco-editor/react";
 import type { Language } from "../types";
 
 interface Props {
@@ -12,6 +13,15 @@ interface Props {
 }
 
 export function Editor({ language, onLanguageChange, code, onCodeChange, onRun, onSubmit, isRunning }: Props) {
+  const [cursor, setCursor] = useState({ line: 1, column: 1 });
+  const lineCount = code.split("\n").length;
+
+  const handleMount: OnMount = (editor) => {
+    editor.onDidChangeCursorPosition(({ position }) => {
+      setCursor({ line: position.lineNumber, column: position.column });
+    });
+  };
+
   const handleLangSwitch = (lang: Language) => {
     if (lang === language) return;
     onLanguageChange(lang);
@@ -68,13 +78,15 @@ export function Editor({ language, onLanguageChange, code, onCodeChange, onRun, 
           </button>
         </div>
       </div>
-      <div className="flex-1">
+      {/* min-h-0 lets Monaco shrink, so the footer below stays on screen */}
+      <div className="flex-1 min-h-0">
         <MonacoEditor
           height="100%"
           language={language === "cpp" ? "cpp" : "python"}
           theme="vs-dark"
           value={code}
           onChange={(val) => onCodeChange(val || "")}
+          onMount={handleMount}
           options={{
             fontSize: 14,
             fontFamily: "'Fira Code', 'Cascadia Code', 'JetBrains Mono', Consolas, monospace",
@@ -91,8 +103,8 @@ export function Editor({ language, onLanguageChange, code, onCodeChange, onRun, 
         />
       </div>
       <div className="px-3 py-1 bg-gray-900/80 border-t border-gray-700 flex items-center justify-between text-xs text-gray-500">
-        <span>Saved</span>
-        <span>Ln 1, Col 1</span>
+        <span>{lineCount} {lineCount === 1 ? "line" : "lines"}</span>
+        <span>Ln {cursor.line}, Col {cursor.column}</span>
       </div>
     </div>
   );

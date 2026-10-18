@@ -1,55 +1,77 @@
-import type { ServerEvents } from "../types";
+import { RoomSocket } from "./socketBase";
 
-type EventHandler = (data: unknown) => void;
+export const MAX_RETRIES = 5;
 
-export class ArenaSocket {
+/** Exponential backoff: 0.5s, 1s, 2s, 4s, then capped at 8s. */
+export function backoffDelay(attempt: number): number {
+  return Math.min(500 * 2 ** attempt, 8000);
+}
+
+// 1008 (policy violation) and the 4000-4999 application range mean the server
+// rejected us on purpose (bad token, full room); retrying would loop forever.
+function isRejection(code: number): boolean {
+  return code === 1008 || (code >= 4000 && code < 5000);
+}
+
+// Payloads include submitted code, so trace logging stays out of production builds.
+const debug: (...args: unknown[]) => void = import.meta.env.DEV
+  ? (...args) => console.log("[WS]", ...args)
+  : () => {};
+
+export class ArenaSocket extends RoomSocket {
   private ws: WebSocket | null = null;
-  private handlers: Map<string, EventHandler[]> = new Map();
+  private url = "";
+  private retries = 0;
+  private retryTimer: ReturnType<typeof setTimeout> | undefined;
+  private closedByClient = false;
 
   connect(roomCode: string, token: string): void {
     const wsUrl = import.meta.env.VITE_WS_URL || `ws://${window.location.host}`;
-    const url = `${wsUrl}/ws/${roomCode}?token=${token}`;
-    console.log("[WS] Connecting to:", url.replace(/token=.*/, "token=***"));
-    this.ws = new WebSocket(url);
+    this.url = `${wsUrl}/ws/${roomCode}?token=${token}`;
+    this.closedByClient = false;
+    this.retries = 0;
+    this.open();
+  }
 
-    this.ws.onopen = () => {
-      console.log("[WS] Connected");
+  private open(): void {
+    debug("Connecting to:", this.url.replace(/token=.*/, "token=***"));
+    this.setState(this.retries === 0 ? "connecting" : "reconnecting");
+    const ws = new WebSocket(this.url);
+    this.ws = ws;
+
+    ws.onopen = () => {
+      this.retries = 0;
+      this.setState("open");
     };
 
-    this.ws.onmessage = (event) => {
+    ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      console.log("[WS] Received:", data.event, data);
-      const eventName = data.event;
-      const eventHandlers = this.handlers.get(eventName) || [];
-      eventHandlers.forEach((handler) => handler(data));
+      debug("Received:", data.event, data);
+      this.dispatch(data.event, data);
     };
 
-    this.ws.onerror = (event) => {
+    ws.onerror = (event) => {
       console.error("[WS] Error:", event);
     };
 
-    this.ws.onclose = (event) => {
-      console.log("[WS] Closed:", event.code, event.reason);
-      const closeHandlers = this.handlers.get("close") || [];
-      closeHandlers.forEach((handler) => handler({}));
-    };
-  }
-
-  on<E extends keyof ServerEvents>(event: E, handler: (data: ServerEvents[E]) => void): () => void {
-    const h = handler as EventHandler;
-    if (!this.handlers.has(event)) {
-      this.handlers.set(event, []);
-    }
-    this.handlers.get(event)!.push(h);
-    return () => {
-      const handlers = this.handlers.get(event) || [];
-      this.handlers.set(event, handlers.filter((x) => x !== h));
+    ws.onclose = (event) => {
+      debug("Closed:", event.code, event.reason);
+      // A socket we already replaced or closed ourselves must not trigger a retry.
+      if (this.ws !== ws || this.closedByClient) return;
+      this.ws = null;
+      if (this.retries < MAX_RETRIES && !isRejection(event.code)) {
+        this.setState("reconnecting");
+        this.retryTimer = setTimeout(() => this.open(), backoffDelay(this.retries++));
+        return;
+      }
+      this.setState("closed");
+      this.dispatch("close", {});
     };
   }
 
   send(event: string, data: Record<string, unknown> = {}): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
-      console.log("[WS] Sending:", event, data);
+      debug("Sending:", event, data);
       this.ws.send(JSON.stringify({ event, ...data }));
     } else {
       console.warn("[WS] Cannot send, state:", this.ws?.readyState);
@@ -57,8 +79,11 @@ export class ArenaSocket {
   }
 
   disconnect(): void {
+    this.closedByClient = true;
+    clearTimeout(this.retryTimer);
     this.ws?.close();
     this.ws = null;
-    this.handlers.clear();
+    this.clearHandlers();
+    this.setState("closed");
   }
 }

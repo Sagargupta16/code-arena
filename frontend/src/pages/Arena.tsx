@@ -3,12 +3,14 @@ import { useParams, useNavigate, useLocation } from "react-router";
 import { useAuth } from "../hooks/useAuth";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useTimer } from "../hooks/useTimer";
+import { useConnectionState } from "../hooks/useConnectionState";
 import { Editor } from "../components/Editor";
 import { FALLBACK_CODE } from "../components/fallbackCode";
 import { Timer } from "../components/Timer";
 import { ProblemPanel } from "../components/ProblemPanel";
 import { TestResults } from "../components/TestResults";
 import { StatusBar } from "../components/StatusBar";
+import { ConnectionPill } from "../components/ConnectionPill";
 import type { Problem, SubmissionResult, Language, StatusEntry } from "../types";
 
 function getStarterCode(problem: Problem | null, lang: Language): string {
@@ -18,14 +20,16 @@ function getStarterCode(problem: Problem | null, lang: Language): string {
 
 export function Arena() {
   const { code: roomCode } = useParams<{ code: string }>();
-  const { token } = useAuth();
+  const { token, isDemo } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const socket = useWebSocket(roomCode, token);
-  const timer = useTimer();
+  const connection = useConnectionState(socket);
+  const navState = location.state as { problem?: Problem; timeLimit?: number; mode?: string } | null;
+  // Start from the match's time limit so the clock is right before the first tick.
+  const timer = useTimer(navState?.timeLimit ?? 0);
   const { setFromServer } = timer;
 
-  const navState = location.state as { problem?: Problem; timeLimit?: number; mode?: string } | null;
   const [problem, setProblem] = useState<Problem | null>(navState?.problem || null);
   const [language, setLanguage] = useState<Language>("python");
   const [codeText, setCodeText] = useState(() => getStarterCode(navState?.problem || null, "python"));
@@ -119,6 +123,7 @@ export function Arena() {
               Time running out!
             </span>
           )}
+          <ConnectionPill state={connection} demo={isDemo} />
           <span className="text-xs font-mono text-gray-500 bg-gray-800 px-2 py-1 rounded">{roomCode}</span>
         </div>
       </div>

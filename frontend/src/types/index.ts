@@ -60,6 +60,7 @@ export interface SubmissionResult {
 
 export interface PlayerRanking {
   user_id: string;
+  username?: string;
   score: number;
   solve_time_ms: number;
   attempts: number;
