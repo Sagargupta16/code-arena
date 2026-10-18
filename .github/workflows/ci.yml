@@ -3,12 +3,16 @@ on:
   push:
     branches: [main]
   pull_request:
+permissions:
+  contents: read
 jobs:
   build:
     uses: Sagargupta16/shared-workflows/.github/workflows/node-ci.yml@main
+    permissions:
+      contents: read
     with:
       working-directory: frontend
-      run-lint: false # pre-existing lint errors; re-enable once cleaned up
+      node-version: "24.x" # match deploy-frontend.yml
   security:
     uses: Sagargupta16/shared-workflows/.github/workflows/security-scan.yml@main
     permissions:

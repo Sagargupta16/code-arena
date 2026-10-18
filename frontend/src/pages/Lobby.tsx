@@ -4,14 +4,15 @@ import { useAuth } from "../hooks/useAuth";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { api } from "../services/api";
 import { PlayerList } from "../components/PlayerList";
+import type { Player, Room } from "../types";
 
 export function Lobby() {
   const { code } = useParams<{ code: string }>();
   const { token, userId } = useAuth();
   const navigate = useNavigate();
-  const socketRef = useWebSocket(code, token);
-  const [room, setRoom] = useState<any>(null);
-  const [players, setPlayers] = useState<any[]>([]);
+  const socket = useWebSocket(code, token);
+  const [room, setRoom] = useState<Room | null>(null);
+  const [players, setPlayers] = useState<Player[]>([]);
 
   useEffect(() => {
     if (!code) return;
@@ -21,7 +22,6 @@ export function Lobby() {
   }, [code]);
 
   useEffect(() => {
-    const socket = socketRef.current;
     if (!socket) return;
 
     const unsub1 = socket.on("room:player_joined", (data) => {
@@ -40,12 +40,12 @@ export function Lobby() {
     });
 
     return () => { unsub1(); unsub2(); unsub3(); };
-  }, [socketRef.current, code, navigate]);
+  }, [socket, code, navigate]);
 
   const isHost = room?.host_id === userId;
 
   const handleStart = () => {
-    socketRef.current?.send("match:start");
+    socket?.send("match:start");
   };
 
   return (

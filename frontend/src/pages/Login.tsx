@@ -9,8 +9,8 @@ export function Login() {
     setError("");
     try {
       await loginWithGitHub();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
     }
   };
 

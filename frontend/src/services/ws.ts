@@ -1,4 +1,6 @@
-type EventHandler = (data: any) => void;
+import type { ServerEvents } from "../types";
+
+type EventHandler = (data: unknown) => void;
 
 export class ArenaSocket {
   private ws: WebSocket | null = null;
@@ -33,18 +35,19 @@ export class ArenaSocket {
     };
   }
 
-  on(event: string, handler: EventHandler): () => void {
+  on<E extends keyof ServerEvents>(event: E, handler: (data: ServerEvents[E]) => void): () => void {
+    const h = handler as EventHandler;
     if (!this.handlers.has(event)) {
       this.handlers.set(event, []);
     }
-    this.handlers.get(event)!.push(handler);
+    this.handlers.get(event)!.push(h);
     return () => {
       const handlers = this.handlers.get(event) || [];
-      this.handlers.set(event, handlers.filter((h) => h !== handler));
+      this.handlers.set(event, handlers.filter((x) => x !== h));
     };
   }
 
-  send(event: string, data: Record<string, any> = {}): void {
+  send(event: string, data: Record<string, unknown> = {}): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
       console.log("[WS] Sending:", event, data);
       this.ws.send(JSON.stringify({ event, ...data }));

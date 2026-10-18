@@ -72,3 +72,28 @@ export interface MatchResult {
 }
 
 export type Language = "cpp" | "python";
+
+export interface Player {
+  id: string;
+  username: string;
+}
+
+export interface StatusEntry {
+  user_id: string;
+  username?: string;
+  status: string;
+  attempts: number;
+  test_cases_passed: number;
+}
+
+/** Payload of every server-to-client WebSocket event, keyed by event name. */
+export interface ServerEvents {
+  "room:player_joined": { user: Player; player_count?: number };
+  "room:player_left": { user_id: string };
+  "match:problem": { problem: Problem; time_limit?: number; mode?: RoomSettings["mode"] };
+  "match:timer_tick": { remaining_seconds: number };
+  "match:result": SubmissionResult;
+  "match:status_update": StatusEntry;
+  "match:finished": MatchResult;
+  close: Record<string, never>;
+}

@@ -1,19 +1,16 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo } from "react";
 import { ArenaSocket } from "../services/ws";
 
+// Returns the socket instance itself (not a ref) so pages can list it as an
+// effect dependency and resubscribe whenever the room or token changes.
 export function useWebSocket(roomCode: string | undefined, token: string | null) {
-  const socketRef = useRef<ArenaSocket | null>(null);
+  const socket = useMemo(() => (roomCode && token ? new ArenaSocket() : null), [roomCode, token]);
 
   useEffect(() => {
-    if (!roomCode || !token) return;
-    const socket = new ArenaSocket();
+    if (!socket || !roomCode || !token) return;
     socket.connect(roomCode, token);
-    socketRef.current = socket;
-    return () => {
-      socket.disconnect();
-      socketRef.current = null;
-    };
-  }, [roomCode, token]);
+    return () => socket.disconnect();
+  }, [socket, roomCode, token]);
 
-  return socketRef;
+  return socket;
 }

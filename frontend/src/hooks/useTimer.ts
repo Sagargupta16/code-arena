@@ -4,7 +4,8 @@ export function useTimer() {
   const [remaining, setRemaining] = useState<number>(0);
   const callbackRef = useRef<(() => void) | null>(null);
 
-  const setFromServer = (seconds: number) => setRemaining(seconds);
+  // Stable identity (a state setter), so callers can list it as an effect dependency.
+  const setFromServer = setRemaining;
 
   const onExpire = (cb: () => void) => {
     callbackRef.current = cb;
